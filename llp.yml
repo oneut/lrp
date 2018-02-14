@@ -1,6 +1,0 @@
-port: 1000
-tasks:
-  go:
-    path: ./public
-    command: hs
-    compile: true

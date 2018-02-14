@@ -1,7 +1,7 @@
 package monitor
 
 type Task struct {
-	Path    string
-	Command string
-	Compile bool
+	MonitorPath string `yaml:"monitor_path"`
+	Command     string
+	Compile     bool
 }

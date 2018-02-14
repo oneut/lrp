@@ -34,8 +34,6 @@ func (m *Monitor) Run(fn func(string)) {
 	m.InitMonitorPath()
 	m.StartCommand()
 
-	// @todo log
-
 	defer m.Watcher.Close()
 
 	done := make(chan bool)
@@ -45,17 +43,12 @@ func (m *Monitor) Run(fn func(string)) {
 			case event := <-m.Watcher.Events:
 				log.Info("event:", event)
 				switch {
-				case event.Op&fsnotify.Write == fsnotify.Write:
-					log.Info("Modified file: ", event.Name)
 				case event.Op&fsnotify.Create == fsnotify.Create:
-					m.AddMonitorPathByString(event.Name)
 					log.Info("Created file: ", event.Name)
-				case event.Op&fsnotify.Remove == fsnotify.Remove:
-					log.Info("Removed file: ", event.Name)
+					m.AddMonitorPathByString(event.Name)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
 					log.Info("Renamed file: ", event.Name)
-				case event.Op&fsnotify.Chmod == fsnotify.Chmod:
-					log.Info("File changed permission: ", event.Name)
+					m.AddMonitorPathByString(event.Name)
 				}
 
 				m.restartCommand()
@@ -68,10 +61,13 @@ func (m *Monitor) Run(fn func(string)) {
 	<-done
 }
 
-func (m *Monitor) InitMonitorPath() {
+func (m *Monitor) InitMonitorPath() error {
 	wd := m.GetWorkingDirectory()
+	if wd == "" {
+		return nil
+	}
 
-	err := filepath.Walk(wd, func(path string, fileInfo os.FileInfo, err error) error {
+	return filepath.Walk(wd, func(path string, fileInfo os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -79,10 +75,6 @@ func (m *Monitor) InitMonitorPath() {
 		m.AddMonitorPath(path, fileInfo)
 		return nil
 	})
-
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (m *Monitor) AddMonitorPathByString(path string) bool {
@@ -108,11 +100,11 @@ func (m *Monitor) AddMonitorPath(path string, fileInfo os.FileInfo) bool {
 }
 
 func (m *Monitor) GetWorkingDirectory() string {
-	if m.Task.Path == "" {
-		panic("task path is required.")
+	if m.Task.MonitorPath == "" {
+		return ""
 	}
 
-	directory, err := filepath.Abs(m.Task.Path)
+	directory, err := filepath.Abs(m.Task.MonitorPath)
 	if err != nil {
 		panic(err)
 	}

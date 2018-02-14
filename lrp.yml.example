@@ -1,0 +1,7 @@
+proxy_host: "localhost:9000"
+source_host: "localhost:8080"
+tasks:
+  go:
+    monitor_path: ./public
+    command: hs
+    compile: true
