@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/omeid/livereload"
+	"github.com/oneut/lrp/command"
 	"github.com/oneut/lrp/config"
 	"github.com/oneut/lrp/monitor"
 	"github.com/oneut/lrp/proxy"
@@ -10,16 +11,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// startCmd represents the start command
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "start live reload proxy",
-	Long:  `A longer description that spans multiple lines and likely contains examples and usage of using your command. For example: Cobra is a CLI library for Go that empowers applications.This application is a tool to generate the needed files to quickly create a Cobra application.`,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		run()
 	},
@@ -31,65 +33,107 @@ func init() {
 
 func run() {
 	log.Info("Start live reload proxy")
-	cfg := config.GetConfig()
-	lrp := &LivereloadProxy{}
-	for name, task := range cfg.Tasks {
-		go func() {
-			log.WithFields(log.Fields{
-				"name": name,
-			}).Info("Start monitor")
-			lrp.StartMonitor(name, task)
-		}()
+	lrp := &LivereloadProxy{
+		Config: config.GetConfig(),
 	}
-	lrp.StartLivereload(cfg.ProxyHost, cfg.SourceHost)
+
+	lrp.startTasks()
+	lrp.startLivereload()
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	for {
+		select {
+		case <-sigChan:
+			// @todo terminate処理
+			os.Exit(0)
+		}
+	}
 }
 
 type LivereloadProxy struct {
-	Monitor    map[string]*monitor.Monitor
+	Config     *config.Config
+	Tasks      map[string]*Task
 	Livereload *livereload.Server
 }
 
-func (llp *LivereloadProxy) StartMonitor(name string, task monitor.Task) {
-	m := monitor.NewMonitor(name, task)
-	m.Run(func(message string) {
-		llp.Livereload.Reload(message, true)
-	})
-	llp.Monitor[name] = m
+type Task struct {
+	Command *command.Command
+	Monitor monitor.Monitorer
 }
 
-func (llp *LivereloadProxy) StartLivereload(proxyHost string, sourceHost string) {
-	llp.Livereload = livereload.New("LivereloadProxy")
+func (lrp *LivereloadProxy) startTasks() {
+	for name, task := range lrp.Config.Tasks {
+		go func() {
+			lrp.startTask(name, task)
+		}()
+	}
+}
+
+func (lrp *LivereloadProxy) startTask(name string, taskConfig config.Task) {
+
+	c := command.NewCommand(name, taskConfig.Command)
+	m := monitor.NewMonitor(name, taskConfig.Monitor)
+
+	fn := func(message string) {
+		c.Restart()
+		lrp.Livereload.Reload(message, true)
+	}
+
+	c.Run(fn)
+	m.Run(fn)
+
+	lrp.Tasks[name] = &Task{
+		Command: c,
+		Monitor: m,
+	}
+}
+
+func (lrp *LivereloadProxy) startLivereload() {
+	lrp.Livereload = livereload.New("LivereloadProxy")
+
+	r := &RegexpHandler{}
 
 	scriptPath := "/livereload.js"
-	http.Handle("/livereload", llp.Livereload)
-	http.HandleFunc(scriptPath, livereload.LivereloadScript)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		director := func(req *http.Request) {
-			// @todo
-			req.URL.Scheme = "http"
-			req.URL.Host = sourceHost
-		}
+	r.Handle("/livereload", lrp.Livereload)
+	r.HandleFunc(scriptPath, livereload.LivereloadScript)
+	r.HandleFunc("*", lrp.handler)
 
-		modifier := func(res *http.Response) error {
-			proxyDocument := &proxy.ProxyDocument{res.Body}
-			buf := proxyDocument.CreateBytesBufferWithLiveReloadScriptPath(scriptPath)
-			s := buf.String()
-			s = strings.Replace(s, sourceHost, proxyHost, -1)
-			res.Header.Set("Content-Length", strconv.Itoa(len(s)))
-			res.Body = ioutil.NopCloser(strings.NewReader(s))
-			return nil
-		}
+	http.Handle("/", r)
+	go func() {
+		defer lrp.Livereload.Close()
+		http.ListenAndServe(lrp.Config.ProxyHost, nil)
+	}()
+}
 
-		proxy := &httputil.ReverseProxy{
-			Director:       director,
-			ModifyResponse: modifier,
-			Transport:      &RetryTransport{},
-		}
-		proxy.ServeHTTP(w, r)
-	})
+func (lrp *LivereloadProxy) handler(w http.ResponseWriter, r *http.Request) {
+	scriptPath := "/livereload.js"
+	director := func(req *http.Request) {
+		req.URL.Scheme = "http"
+		req.URL.Host = lrp.Config.SourceHost
+	}
 
-	// @todo
-	http.ListenAndServe(proxyHost, nil)
+	modifier := func(res *http.Response) error {
+		//contentType := res.Header.Get("Content-type")
+		//log.Info(contentType)
+		//if contentType != "text/html" {
+		//	return nil
+		//}
+		proxyDocument := &proxy.ProxyDocument{res.Body}
+		buf := proxyDocument.CreateBytesBufferWithLiveReloadScriptPath(scriptPath)
+		s := buf.String()
+		s = strings.Replace(s, lrp.Config.SourceHost, lrp.Config.ProxyHost, -1)
+		res.Header.Set("Content-Length", strconv.Itoa(len(s)))
+		res.Body = ioutil.NopCloser(strings.NewReader(s))
+		return nil
+	}
+
+	rp := &httputil.ReverseProxy{
+		Director:       director,
+		ModifyResponse: modifier,
+		Transport:      &RetryTransport{},
+	}
+	rp.ServeHTTP(w, r)
 }
 
 type RetryTransport struct {
@@ -99,10 +143,41 @@ func (rt *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	for {
 		res, err := http.DefaultTransport.RoundTrip(req)
 		if err == nil {
-			log.Printf("%d\t%s\t%s\n", res.StatusCode, req.Method, req.URL.String())
-			return res, err
+			return res, nil
 		}
 
 		time.Sleep(200 * time.Millisecond)
 	}
+}
+
+type route struct {
+	pattern string
+	handler http.Handler
+}
+
+type RegexpHandler struct {
+	routes []*route
+}
+
+func (h *RegexpHandler) Handle(pattern string, handler http.Handler) {
+	h.routes = append(h.routes, &route{pattern, handler})
+}
+
+func (h *RegexpHandler) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	h.routes = append(h.routes, &route{pattern, http.HandlerFunc(handler)})
+}
+
+func (h *RegexpHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, route := range h.routes {
+		if route.pattern == "*" {
+			route.handler.ServeHTTP(w, r)
+			return
+		}
+		if route.pattern == r.URL.Path {
+			route.handler.ServeHTTP(w, r)
+			return
+		}
+	}
+	// no pattern matched; send 404 response
+	http.NotFound(w, r)
 }

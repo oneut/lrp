@@ -3,8 +3,6 @@ package config
 import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-
-	"github.com/oneut/lrp/monitor"
 )
 
 func GetConfig() *Config {
@@ -22,5 +20,5 @@ func GetConfig() *Config {
 type Config struct {
 	ProxyHost  string `yaml:"proxy_host"`
 	SourceHost string `yaml:"source_host"`
-	Tasks      map[string]monitor.Task
+	Tasks      map[string]Task
 }

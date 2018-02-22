@@ -1,7 +1,11 @@
 proxy_host: "localhost:9000"
 source_host: "localhost:8080"
 tasks:
-  go:
-    monitor_path: ./public
-    command: hs
-    compile: true
+    go:
+        command:
+            execute: go run main.go
+            needs_restart: true
+            watch_stdout	
+        monitor:
+            paths:
+                - ./public
