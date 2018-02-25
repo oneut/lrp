@@ -54,22 +54,22 @@ lrp start
 proxy_host: "localhost:9000"
 source_host: "localhost:8080"
 tasks:
-	webpack:
-		aggregate_timeout: 1000
-		command:
-			execute: npm start --prefix ./public/assets
-			needs_restart: false
-			watch_stdout:
-				- bundle.js
-		monitor:
-			paths:
-				- ./public
-			ignore:
-				- node_modules
-	php:
-		monitor:
-			paths:
-				- ./app
+  webpack:
+    aggregate_timeout: 1000
+    command:
+      execute: npm start --prefix ./public/assets
+      needs_restart: false
+      watch_stdout:
+        - bundle.js
+    monitor:
+      paths:
+        - ./public
+      ignore:
+        - node_modules
+  php:
+    monitor:
+      paths:
+        - ./app
 ```
 
 # オプション

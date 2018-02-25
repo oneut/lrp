@@ -1,13 +1,14 @@
 package monitor
 
 import (
-	"github.com/fsnotify/fsnotify"
-	"github.com/oneut/lrp/config"
-	"github.com/oneut/lrp/logger"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/oneut/lrp/config"
+	"github.com/oneut/lrp/logger"
 )
 
 func NewFsnotifyMonitor(name string, monitorConfig config.Monitor) *fsnotifyMonitor {
@@ -50,7 +51,7 @@ func (fm *fsnotifyMonitor) Run(fn func(string)) {
 				case event.Op&fsnotify.Create == fsnotify.Create:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
-				case event.Op&fsnotify.Create == fsnotify.Write:
+				case event.Op&fsnotify.Write == fsnotify.Write:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:

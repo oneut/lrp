@@ -1,15 +1,15 @@
 proxy_host: "localhost:9000"
 source_host: "localhost:8080"
 tasks:
-    go:
-        aggregate_timeout: 300
-        command:
-            execute: go run main.go
-            needs_restart: true
-            watch_stdout:
-                - compiled
-        monitor:
-            paths:
-                - ./public
-            ignore:
-                - ./assets
+  go:
+    aggregate_timeout: 300
+    command:
+      execute: go run main.go
+      needs_restart: true
+      watch_stdout:
+        - compiled
+    monitor:
+      paths:
+        - ./public
+      ignore:
+        - ./assets
