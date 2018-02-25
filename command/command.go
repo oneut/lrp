@@ -2,17 +2,19 @@ package command
 
 import (
 	"bufio"
-	"github.com/mattn/go-shellwords"
-	"github.com/oneut/lrp/config"
-	"github.com/oneut/lrp/logger"
 	"os/exec"
 	"strings"
 	"syscall"
+
+	"github.com/mattn/go-shellwords"
+	"github.com/oneut/lrp/config"
+	"github.com/oneut/lrp/logger"
 )
 
-func NewCommand(name string, commandConfig config.Command) *Command {
+func NewCommand(name string, commandName string, commandConfig config.Command) *Command {
 	return &Command{
 		CommandConfig: commandConfig,
+		CommandName:   commandName,
 		Name:          name,
 	}
 }
@@ -20,6 +22,7 @@ func NewCommand(name string, commandConfig config.Command) *Command {
 type Command struct {
 	Cmd           *exec.Cmd
 	CommandConfig config.Command
+	CommandName   string
 	Name          string
 	Callback      func(string)
 }
@@ -29,7 +32,7 @@ func (c *Command) Run(fn func(string)) {
 		return
 	}
 
-	logger.InfoEvent(c.Name, "command", "start")
+	logger.InfoCommand(c.Name, c.CommandName, "command", "start")
 	c.Callback = fn
 	c.Start()
 }
@@ -58,7 +61,7 @@ func (c *Command) Start() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
-			logger.InfoEvent(c.Name, "command", line)
+			logger.InfoCommand(c.Name, c.CommandName, "command", line)
 			c.watchStdout(line)
 		}
 	}()
@@ -108,7 +111,7 @@ func (c *Command) Stop() {
 	}
 
 	if c.Kill() {
-		logger.InfoEvent(c.Name, "command", "stop")
+		logger.InfoCommand(c.Name, c.CommandName, "command", "stop")
 	}
 }
 

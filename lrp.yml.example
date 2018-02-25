@@ -1,15 +1,27 @@
 proxy_host: "localhost:9000"
 source_host: "localhost:8080"
 tasks:
-  go:
+  web:
     aggregate_timeout: 300
-    command:
-      execute: go run main.go
-      needs_restart: true
-      watch_stdout:
-        - compiled
+    commands:
+      go:
+        execute: go run main.go
+        needs_restart: true
     monitor:
       paths:
-        - ./public
+        - ./view
+  js:
+    commands:
+      webpack:
+        execute: npm start --prefix ./public/assets
+        needs_restart: false
+        watch_stdout:
+          - bundle.js
+      test:
+        execute: npm test --prefix ./public/assets
+        needs_restart: true
+    monitor:
+      paths:
+        - ./public/assets
       ignore:
-        - ./assets
+        - node_modules

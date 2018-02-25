@@ -1,10 +1,16 @@
 # **WIP**
 
-Exampleで動作はするようにしているが、まだ作り込みが足りません
+Exampleで動作はするようにしていますが、まだ作り込みが足りません
 
 # LRP
 
 LRPはgolang製のLive Reload Proxyです。
+
+|OS        |Status    |
+|----------|----------|
+|Mac|OK|
+|Windows|OK|
+|Linux|?|
 
 # モチベーション
 + livereloadを簡単にしたい
@@ -14,6 +20,7 @@ LRPはgolang製のLive Reload Proxyです。
 + コンパイルが必要な言語も自動的に再コンパイルしたい
 + 設定を簡単にしたい
 + golangで何かを作ってみたかった
+    + 初golang
 + mattnさん作のgoemonがあるが、プロキシサーバは含まれていなかったので作ってみることにした
 
 # 特徴
@@ -54,22 +61,30 @@ lrp start
 proxy_host: "localhost:9000"
 source_host: "localhost:8080"
 tasks:
-  webpack:
-    aggregate_timeout: 1000
-    command:
-      execute: npm start --prefix ./public/assets
-      needs_restart: false
-      watch_stdout:
-        - bundle.js
+  web:
+    aggregate_timeout: 300
+    commands:
+      go:
+        execute: go run main.go
+        needs_restart: true
     monitor:
       paths:
-        - ./public
+        - ./view
+  js:
+    commands:
+      webpack:
+        execute: npm start --prefix ./public/assets
+        needs_restart: false
+        watch_stdout:
+          - bundle.js
+      test:
+        execute: npm test --prefix ./public/assets
+        needs_restart: true
+    monitor:
+      paths:
+        - ./public/assets
       ignore:
         - node_modules
-  php:
-    monitor:
-      paths:
-        - ./app
 ```
 
 # オプション
@@ -78,6 +93,8 @@ tasks:
 # todo
 + test
 + リファクタリング
+    + ファイル分割したい
+    + 命名が雑
 + gRPCによる変更検知
 + `write tcp 127.0.0.1:9000->127.0.0.1:49720: write: broken pipe`がgo-livereloadのwebsocketで発生している・・・。
 + command定義でファイルを動的に取得できると良い？

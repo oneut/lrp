@@ -1,13 +1,6 @@
 package cmd
 
 import (
-	"github.com/omeid/livereload"
-	"github.com/oneut/lrp/command"
-	"github.com/oneut/lrp/config"
-	"github.com/oneut/lrp/livereloadproxy"
-	"github.com/oneut/lrp/monitor"
-	"github.com/oneut/lrp/proxy"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -17,6 +10,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/omeid/livereload"
+	"github.com/oneut/lrp/command"
+	"github.com/oneut/lrp/config"
+	"github.com/oneut/lrp/livereloadproxy"
+	"github.com/oneut/lrp/monitor"
+	"github.com/oneut/lrp/proxy"
+	"github.com/spf13/cobra"
 )
 
 var startCmd = &cobra.Command{
@@ -61,8 +62,8 @@ type LivereloadProxy struct {
 }
 
 type Task struct {
-	Command *command.Command
-	Monitor monitor.Monitorer
+	Commands map[string]*command.Command
+	Monitor  monitor.Monitorer
 }
 
 func (lrp *LivereloadProxy) startTasks() {
@@ -72,8 +73,12 @@ func (lrp *LivereloadProxy) startTasks() {
 }
 
 func (lrp *LivereloadProxy) startTask(name string, taskConfig config.Task) {
-	c := command.NewCommand(name, taskConfig.Command)
 	m := monitor.NewMonitor(name, taskConfig.Monitor)
+
+	cmds := make(map[string]*command.Command)
+	for cmdName, cmdConfig := range taskConfig.Commands {
+		cmds[cmdName] = command.NewCommand(name, cmdName, cmdConfig)
+	}
 
 	isReloading := false
 	fn := func(message string) {
@@ -84,18 +89,22 @@ func (lrp *LivereloadProxy) startTask(name string, taskConfig config.Task) {
 		isReloading = true
 		go func() {
 			time.Sleep(taskConfig.GetAggregateTimeout())
-			c.Restart()
+			for _, cmd := range cmds {
+				cmd.Restart()
+			}
 			lrp.Livereload.Reload(message, true)
 			isReloading = false
 		}()
 	}
 
 	lrp.Tasks[name] = &Task{
-		Command: c,
-		Monitor: m,
+		Commands: cmds,
+		Monitor:  m,
 	}
 
-	go c.Run(fn)
+	for _, cmd := range cmds {
+		go cmd.Run(fn)
+	}
 	go m.Run(fn)
 }
 
@@ -147,7 +156,9 @@ func (lrp *LivereloadProxy) stopTasks() {
 
 func (lrp *LivereloadProxy) stopTask(name string) {
 	task := lrp.Tasks[name]
-	task.Command.Stop()
+	for _, cmd := range task.Commands {
+		cmd.Stop()
+	}
 	task.Monitor.Stop()
 }
 

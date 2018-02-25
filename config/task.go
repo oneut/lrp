@@ -7,7 +7,7 @@ import (
 var defaultAggregateTimeout = 300
 
 type Task struct {
-	Command          Command
+	Commands         map[string]Command
 	Monitor          Monitor
 	AggregateTimeout int `yaml:"aggregate_timeout"`
 }
