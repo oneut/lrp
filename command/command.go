@@ -4,14 +4,13 @@ import (
 	"bufio"
 	"github.com/mattn/go-shellwords"
 	"github.com/oneut/lrp/config"
-	"github.com/oneut/lrp/log"
+	"github.com/oneut/lrp/logger"
 	"os/exec"
 	"strings"
 	"syscall"
 )
 
 func NewCommand(name string, commandConfig config.Command) *Command {
-	log.Info(name, "Start command")
 	return &Command{
 		CommandConfig: commandConfig,
 		Name:          name,
@@ -26,11 +25,20 @@ type Command struct {
 }
 
 func (c *Command) Run(fn func(string)) {
+	if c.isUndefined() {
+		return
+	}
+
+	logger.InfoEvent(c.Name, "command", "start")
 	c.Callback = fn
 	c.Start()
 }
 
 func (c *Command) Start() {
+	if c.isUndefined() {
+		return
+	}
+
 	args, err := shellwords.Parse(c.CommandConfig.Execute)
 	if err != nil {
 		panic(err)
@@ -46,44 +54,68 @@ func (c *Command) Start() {
 	}
 
 	stdout, _ := c.Cmd.StdoutPipe()
-	c.Cmd.Start()
-	oneByte := make([]byte, 100)
 	go func() {
-		for {
-			_, err := stdout.Read(oneByte)
-			if err != nil {
-				break
-			}
-			r := bufio.NewReader(stdout)
-			line, _, _ := r.ReadLine()
-			s := string(line)
-			log.Info(c.Name, s)
-
-			if len(c.CommandConfig.WatchStdout) == 0 {
-				continue
-			}
-
-			for _, value := range c.CommandConfig.WatchStdout {
-				if strings.Contains(s, value) {
-					c.Callback("stdout notify")
-				}
-			}
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			line := scanner.Text()
+			logger.InfoEvent(c.Name, "command", line)
+			c.watchStdout(line)
 		}
-		c.Cmd.Wait()
 	}()
+
+	defer c.Kill()
+	c.Cmd.Start()
+	c.Cmd.Wait()
+}
+
+func (c *Command) watchStdout(line string) {
+	if len(c.CommandConfig.WatchStdout) == 0 {
+		return
+	}
+
+	for _, value := range c.CommandConfig.WatchStdout {
+		if strings.Contains(line, value) {
+			c.Callback("stdout notify")
+			break
+		}
+	}
 }
 
 func (c *Command) Restart() {
-	if !(c.CommandConfig.NeedsRestart) {
+	if c.CommandConfig.NeedsRestart {
 		c.Kill()
 		c.Start()
 	}
 }
 
-func (c *Command) Kill() {
+func (c *Command) Kill() bool {
+	if c.isUndefined() {
+		return false
+	}
+
 	if c.Cmd.Process == nil {
-		return
+		return false
 	}
 
 	c.Cmd.Process.Signal(syscall.SIGTERM)
+
+	return true
+}
+
+func (c *Command) Stop() {
+	if c.isUndefined() {
+		return
+	}
+
+	if c.Kill() {
+		logger.InfoEvent(c.Name, "command", "stop")
+	}
+}
+
+func (c *Command) isUndefined() bool {
+	if c.CommandConfig.Execute == "" {
+		return true
+	}
+
+	return false
 }

@@ -3,55 +3,62 @@ package monitor
 import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/oneut/lrp/config"
-	"github.com/oneut/lrp/log"
+	"github.com/oneut/lrp/logger"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
-func NewFsnotifyMonitor(name string, monitorConfig config.Monitor) *FsnotifyMonitor {
+func NewFsnotifyMonitor(name string, monitorConfig config.Monitor) *fsnotifyMonitor {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		panic(err)
 	}
 
-	return &FsnotifyMonitor{
+	return &fsnotifyMonitor{
 		Name:          name,
 		MonitorConfig: monitorConfig,
 		Watcher:       watcher,
 	}
 }
 
-type FsnotifyMonitor struct {
+type fsnotifyMonitor struct {
 	Name          string
 	MonitorConfig config.Monitor
 	Watcher       *fsnotify.Watcher
 }
 
-func (fm *FsnotifyMonitor) Run(fn func(string)) {
+func (fm *fsnotifyMonitor) Run(fn func(string)) {
+	if fm.isUndefined() {
+		return
+	}
+
+	logger.InfoEvent(fm.Name, "monitor", "start")
 	defer fm.Watcher.Close()
-	fm.InitMonitorPath()
+	fm.initMonitorPath()
 	done := make(chan bool)
 	go func() {
 		for {
 			select {
 			case event := <-fm.Watcher.Events:
-				/*		if event.Name[len(event.Name)-1:] == "~" {
-							continue
-						}
-						if event.Name[len(event.Name)-4:] == ".swp" {
-							continue
-						}
-				*/log.Info(fm.Name, "event:"+event.Name)
+				absPath := fm.getAbsPath(event.Name)
+				if fm.isIgnoreAbsPath(absPath) {
+					break
+				}
 				switch {
 				case event.Op&fsnotify.Create == fsnotify.Create:
-					fm.AddMonitorPathByString(event.Name)
-					fn(event.Name)
+					fm.addMonitorPath(absPath)
+					fn(absPath)
 				case event.Op&fsnotify.Create == fsnotify.Write:
-					fm.AddMonitorPathByString(event.Name)
-					fn(event.Name)
+					fm.addMonitorPath(absPath)
+					fn(absPath)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
-					fm.AddMonitorPathByString(event.Name)
-					fn(event.Name)
+					fm.addMonitorPath(absPath)
+					fn(absPath)
+				case event.Op&fsnotify.Remove == fsnotify.Remove:
+					// remove is not required
+					fn(absPath)
 				}
 
 			case err := <-fm.Watcher.Errors:
@@ -62,9 +69,36 @@ func (fm *FsnotifyMonitor) Run(fn func(string)) {
 	<-done
 }
 
-func (fm *FsnotifyMonitor) InitMonitorPath() error {
+func (fm *fsnotifyMonitor) isIgnoreAbsPath(absPath string) bool {
+	if len(fm.MonitorConfig.Ignore) == 0 {
+		return false
+	}
+
+	for _, ignore := range fm.MonitorConfig.Ignore {
+		if strings.Contains(absPath, ignore) {
+			return true
+		}
+
+		absIgnore := fm.getAbsPath(ignore)
+		if strings.HasPrefix(absPath, absIgnore) {
+			return true
+		}
+
+		absIgnoreRegexp, err := regexp.Compile(absIgnore)
+		if err != nil {
+			panic(err)
+		}
+
+		if absIgnoreRegexp.MatchString(absPath) {
+			return true
+		}
+	}
+	return false
+}
+
+func (fm *fsnotifyMonitor) initMonitorPath() error {
 	for _, targetPath := range fm.MonitorConfig.Paths {
-		absTargetPath := fm.GetAbsPath(targetPath)
+		absTargetPath := fm.getAbsPath(targetPath)
 		if absTargetPath == "" {
 			return nil
 		}
@@ -72,7 +106,12 @@ func (fm *FsnotifyMonitor) InitMonitorPath() error {
 			if err != nil {
 				return err
 			}
-			fm.AddMonitorPath(path, fileInfo)
+
+			if fm.isIgnoreAbsPath(path) {
+				return nil
+			}
+
+			fm.addMonitorPath(path)
 			return nil
 		})
 		if err != nil {
@@ -83,13 +122,11 @@ func (fm *FsnotifyMonitor) InitMonitorPath() error {
 	return nil
 }
 
-func (fm *FsnotifyMonitor) AddMonitorPathByString(path string) bool {
-	fileInfo, _ := os.Stat(path)
-	return fm.AddMonitorPath(path, fileInfo)
-}
-
-func (fm *FsnotifyMonitor) AddMonitorPath(path string, fileInfo os.FileInfo) bool {
-	if fileInfo == nil {
+func (fm *fsnotifyMonitor) addMonitorPath(path string) bool {
+	var err error
+	var fileInfo os.FileInfo
+	fileInfo, err = os.Stat(path)
+	if err != nil {
 		return false
 	}
 
@@ -97,17 +134,22 @@ func (fm *FsnotifyMonitor) AddMonitorPath(path string, fileInfo os.FileInfo) boo
 		return false
 	}
 
-	err := fm.Watcher.Add(path)
+	err = fm.Watcher.Add(path)
 	if err != nil {
 		panic(err)
 	}
 
+	logger.InfoEvent(fm.Name, "monitor", "watch "+path)
 	return true
 }
 
-func (fm *FsnotifyMonitor) GetAbsPath(path string) string {
+func (fm *fsnotifyMonitor) getAbsPath(path string) string {
 	if path == "" {
 		return ""
+	}
+
+	if filepath.IsAbs(path) {
+		return path
 	}
 
 	absPath, err := filepath.Abs(path)
@@ -116,4 +158,21 @@ func (fm *FsnotifyMonitor) GetAbsPath(path string) string {
 	}
 
 	return absPath
+}
+
+func (fm *fsnotifyMonitor) Stop() {
+	if fm.isUndefined() {
+		return
+	}
+
+	logger.InfoEvent(fm.Name, "monitor", "stop")
+	fm.Watcher.Close()
+}
+
+func (fm *fsnotifyMonitor) isUndefined() bool {
+	if len(fm.MonitorConfig.Paths) > 0 {
+		return false
+	}
+
+	return true
 }

@@ -17,7 +17,6 @@ func (pd *ProxyDocument) CreateBytesBufferWithLiveReloadScriptPath(scriptPath st
 	if err != nil {
 		panic(err)
 	}
-
 	body := pd.FindFirstChild(document, atom.Body)
 	body.AppendChild(&html.Node{
 		Type:     html.ElementNode,
@@ -30,7 +29,6 @@ func (pd *ProxyDocument) CreateBytesBufferWithLiveReloadScriptPath(scriptPath st
 			},
 		},
 	})
-
 	return pd.ConvertBytesBufferFromHTMLNode(document)
 }
 
