@@ -11,12 +11,24 @@ import (
 	"github.com/oneut/lrp/logger"
 )
 
-func NewCommand(name string, commandName string, commandConfig config.Command) *Command {
+func NewCommand(name string, commandName string, commandConfig config.Command) Commander {
+	if !(commandConfig.IsValid()) {
+		return &NilCommand{}
+	}
+
 	return &Command{
 		CommandConfig: commandConfig,
 		CommandName:   commandName,
 		Name:          name,
 	}
+}
+
+type Commander interface {
+	Run(func(string))
+	Start()
+	Restart()
+	Kill() bool
+	Stop()
 }
 
 type Command struct {
@@ -28,20 +40,12 @@ type Command struct {
 }
 
 func (c *Command) Run(fn func(string)) {
-	if c.isUndefined() {
-		return
-	}
-
-	logger.InfoCommand(c.Name, c.CommandName, "command", "start")
+	logger.InfoCommand(c.Name, c.CommandName, "start")
 	c.Callback = fn
 	c.Start()
 }
 
 func (c *Command) Start() {
-	if c.isUndefined() {
-		return
-	}
-
 	args, err := shellwords.Parse(c.CommandConfig.Execute)
 	if err != nil {
 		panic(err)
@@ -61,7 +65,7 @@ func (c *Command) Start() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
-			logger.InfoCommand(c.Name, c.CommandName, "command", line)
+			logger.InfoCommandStdout(c.Name, c.CommandName, line)
 			c.watchStdout(line)
 		}
 	}()
@@ -79,6 +83,7 @@ func (c *Command) watchStdout(line string) {
 	for _, value := range c.CommandConfig.WatchStdout {
 		if strings.Contains(line, value) {
 			c.Callback("stdout notify")
+			logger.InfoCommand(c.Name, c.CommandName, "watch_stdout is fired:"+value)
 			break
 		}
 	}
@@ -92,10 +97,6 @@ func (c *Command) Restart() {
 }
 
 func (c *Command) Kill() bool {
-	if c.isUndefined() {
-		return false
-	}
-
 	if c.Cmd.Process == nil {
 		return false
 	}
@@ -106,19 +107,7 @@ func (c *Command) Kill() bool {
 }
 
 func (c *Command) Stop() {
-	if c.isUndefined() {
-		return
-	}
-
 	if c.Kill() {
-		logger.InfoCommand(c.Name, c.CommandName, "command", "stop")
+		logger.InfoCommand(c.Name, c.CommandName, "stop")
 	}
-}
-
-func (c *Command) isUndefined() bool {
-	if c.CommandConfig.Execute == "" {
-		return true
-	}
-
-	return false
 }

@@ -31,10 +31,6 @@ type fsnotifyMonitor struct {
 }
 
 func (fm *fsnotifyMonitor) Run(fn func(string)) {
-	if fm.isUndefined() {
-		return
-	}
-
 	logger.InfoEvent(fm.Name, "monitor", "start")
 	defer fm.Watcher.Close()
 	fm.initMonitorPath()
@@ -51,15 +47,19 @@ func (fm *fsnotifyMonitor) Run(fn func(string)) {
 				case event.Op&fsnotify.Create == fsnotify.Create:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
+					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
 				case event.Op&fsnotify.Write == fsnotify.Write:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
+					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
+					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
 				case event.Op&fsnotify.Remove == fsnotify.Remove:
 					// remove is not required
 					fn(absPath)
+					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
 				}
 
 			case err := <-fm.Watcher.Errors:
@@ -162,18 +162,6 @@ func (fm *fsnotifyMonitor) getAbsPath(path string) string {
 }
 
 func (fm *fsnotifyMonitor) Stop() {
-	if fm.isUndefined() {
-		return
-	}
-
 	logger.InfoEvent(fm.Name, "monitor", "stop")
 	fm.Watcher.Close()
-}
-
-func (fm *fsnotifyMonitor) isUndefined() bool {
-	if len(fm.MonitorConfig.Paths) > 0 {
-		return false
-	}
-
-	return true
 }

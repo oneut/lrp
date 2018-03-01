@@ -5,10 +5,14 @@ import (
 )
 
 func NewMonitor(name string, monitorConfig config.Monitor) Monitorer {
+	if !(monitorConfig.IsValid()) {
+		return &NilMonitor{}
+	}
+
 	return NewFsnotifyMonitor(name, monitorConfig)
 }
 
 type Monitorer interface {
-	Run(fn func(string))
+	Run(func(string))
 	Stop()
 }

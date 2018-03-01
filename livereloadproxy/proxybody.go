@@ -1,23 +1,24 @@
-package proxy
+package livereloadproxy
 
 import (
 	"bytes"
+	"io"
+
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
-	"io"
 )
 
-type ProxyDocument struct {
+type ProxyBody struct {
 	Body io.ReadCloser
 }
 
-func (pd *ProxyDocument) CreateBytesBufferWithLiveReloadScriptPath(scriptPath string) bytes.Buffer {
-	defer pd.Body.Close()
-	document, err := html.Parse(pd.Body)
+func (pb *ProxyBody) CreateBytesBufferWithLiveReloadScriptPath(scriptPath string) bytes.Buffer {
+	defer pb.Body.Close()
+	document, err := html.Parse(pb.Body)
 	if err != nil {
 		panic(err)
 	}
-	body := pd.FindFirstChild(document, atom.Body)
+	body := pb.FindFirstChild(document, atom.Body)
 	body.AppendChild(&html.Node{
 		Type:     html.ElementNode,
 		Data:     "script",
@@ -29,10 +30,10 @@ func (pd *ProxyDocument) CreateBytesBufferWithLiveReloadScriptPath(scriptPath st
 			},
 		},
 	})
-	return pd.ConvertBytesBufferFromHTMLNode(document)
+	return pb.ConvertBytesBufferFromHTMLNode(document)
 }
 
-func (pd *ProxyDocument) FindFirstChild(node *html.Node, a atom.Atom) *html.Node {
+func (pb *ProxyBody) FindFirstChild(node *html.Node, a atom.Atom) *html.Node {
 	for childNode := node.FirstChild; childNode != nil; childNode = childNode.NextSibling {
 		if childNode.Type != html.ElementNode {
 			continue
@@ -40,7 +41,7 @@ func (pd *ProxyDocument) FindFirstChild(node *html.Node, a atom.Atom) *html.Node
 		if childNode.DataAtom == a {
 			return node
 		}
-		if n := pd.FindFirstChild(childNode, a); n != nil {
+		if n := pb.FindFirstChild(childNode, a); n != nil {
 			return n
 		}
 
@@ -49,7 +50,7 @@ func (pd *ProxyDocument) FindFirstChild(node *html.Node, a atom.Atom) *html.Node
 	return nil
 }
 
-func (pd *ProxyDocument) ConvertBytesBufferFromHTMLNode(node *html.Node) bytes.Buffer {
+func (pb *ProxyBody) ConvertBytesBufferFromHTMLNode(node *html.Node) bytes.Buffer {
 	var buf bytes.Buffer
 	for childNode := node.FirstChild; childNode != nil; childNode = childNode.NextSibling {
 		html.Render(&buf, childNode)
