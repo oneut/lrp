@@ -4,7 +4,7 @@ import (
 	"github.com/oneut/lrp/config"
 )
 
-func NewMonitor(name string, monitorConfig config.Monitor) Monitorer {
+func NewMonitor(name string, monitorConfig config.Monitor) MonitorInterface {
 	if !(monitorConfig.IsValid()) {
 		return &NilMonitor{}
 	}
@@ -12,7 +12,7 @@ func NewMonitor(name string, monitorConfig config.Monitor) Monitorer {
 	return NewFsnotifyMonitor(name, monitorConfig)
 }
 
-type Monitorer interface {
+type MonitorInterface interface {
 	Run(func(string))
 	Stop()
 }

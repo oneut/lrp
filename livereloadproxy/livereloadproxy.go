@@ -1,7 +1,6 @@
 package livereloadproxy
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -42,10 +41,9 @@ func (lrp *LivereloadProxy) startTasks() {
 func (lrp *LivereloadProxy) startTask(name string, taskConfig config.Task) {
 	m := monitor.NewMonitor(name, taskConfig.Monitor)
 
-	cmds := make(map[string]command.Commander)
+	cmds := make(map[string]command.CommandInterface)
 	for cmdName, cmdConfig := range taskConfig.Commands {
 		cmds[cmdName] = command.NewCommand(name, cmdName, cmdConfig)
-		fmt.Printf("%#v", cmds[cmdName])
 	}
 
 	isReloading := false

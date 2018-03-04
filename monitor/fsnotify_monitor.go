@@ -31,7 +31,7 @@ type fsnotifyMonitor struct {
 }
 
 func (fm *fsnotifyMonitor) Run(fn func(string)) {
-	logger.InfoEvent(fm.Name, "monitor", "start")
+	logger.InfoMonitor(fm.Name, "start")
 	defer fm.Watcher.Close()
 	fm.initMonitorPath()
 	done := make(chan bool)
@@ -47,19 +47,19 @@ func (fm *fsnotifyMonitor) Run(fn func(string)) {
 				case event.Op&fsnotify.Create == fsnotify.Create:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
-					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
+					logger.InfoMonitor(fm.Name, event.Op.String()+" "+absPath)
 				case event.Op&fsnotify.Write == fsnotify.Write:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
-					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
+					logger.InfoMonitor(fm.Name, event.Op.String()+" "+absPath)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
 					fm.addMonitorPath(absPath)
 					fn(absPath)
-					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
+					logger.InfoMonitor(fm.Name, event.Op.String()+" "+absPath)
 				case event.Op&fsnotify.Remove == fsnotify.Remove:
-					// remove is not required
+					// `remove monitor path` is not required
 					fn(absPath)
-					logger.InfoEvent(fm.Name, "monitor", event.Op.String()+" "+absPath)
+					logger.InfoMonitor(fm.Name, event.Op.String()+" "+absPath)
 				}
 
 			case err := <-fm.Watcher.Errors:
@@ -140,7 +140,7 @@ func (fm *fsnotifyMonitor) addMonitorPath(path string) bool {
 		panic(err)
 	}
 
-	logger.InfoEvent(fm.Name, "monitor", "watch "+path)
+	logger.InfoMonitor(fm.Name, "watch "+path)
 	return true
 }
 
@@ -162,6 +162,6 @@ func (fm *fsnotifyMonitor) getAbsPath(path string) string {
 }
 
 func (fm *fsnotifyMonitor) Stop() {
-	logger.InfoEvent(fm.Name, "monitor", "stop")
+	logger.InfoMonitor(fm.Name, "stop")
 	fm.Watcher.Close()
 }

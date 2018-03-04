@@ -11,7 +11,7 @@ import (
 	"github.com/oneut/lrp/logger"
 )
 
-func NewCommand(name string, commandName string, commandConfig config.Command) Commander {
+func NewCommand(name string, commandName string, commandConfig config.Command) CommandInterface {
 	if !(commandConfig.IsValid()) {
 		return &NilCommand{}
 	}
@@ -23,7 +23,7 @@ func NewCommand(name string, commandName string, commandConfig config.Command) C
 	}
 }
 
-type Commander interface {
+type CommandInterface interface {
 	Run(func(string))
 	Start()
 	Restart()

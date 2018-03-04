@@ -6,6 +6,6 @@ import (
 )
 
 type Task struct {
-	Commands map[string]command.Commander
-	Monitor  monitor.Monitorer
+	Commands map[string]command.CommandInterface
+	Monitor  monitor.MonitorInterface
 }
