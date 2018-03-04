@@ -3,10 +3,10 @@ package monitor
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/gobwas/glob"
 	"github.com/oneut/lrp/config"
 	"github.com/oneut/lrp/logger"
 )
@@ -76,24 +76,36 @@ func (fm *fsnotifyMonitor) isIgnoreAbsPath(absPath string) bool {
 	}
 
 	for _, ignore := range fm.MonitorConfig.Ignore {
-		if strings.Contains(absPath, ignore) {
-			return true
+		// partial path check
+		if !(strings.HasPrefix(ignore, "./") || strings.HasPrefix(ignore, "../") || strings.HasPrefix(ignore, "/")) {
+			if strings.Contains(absPath, ignore) {
+				return true
+			}
+
+			if fm.matchGlob(absPath, "*"+ignore) {
+				return true
+			}
 		}
 
+		// abstract path check
 		absIgnore := fm.getAbsPath(ignore)
 		if strings.HasPrefix(absPath, absIgnore) {
 			return true
 		}
 
-		absIgnoreRegexp, err := regexp.Compile(absIgnore)
-		if err != nil {
-			panic(err)
-		}
-
-		if absIgnoreRegexp.MatchString(absPath) {
+		if fm.matchGlob(absPath, absIgnore) {
 			return true
 		}
 	}
+	return false
+}
+
+func (fm *fsnotifyMonitor) matchGlob(path string, ignore string) bool {
+	g := glob.MustCompile(ignore)
+	if g.Match(path) {
+		return true
+	}
+
 	return false
 }
 
