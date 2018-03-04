@@ -88,7 +88,143 @@ tasks:
 ```
 
 # オプション
-完成したら書く
+## proxy_host
+Live Reloadのプロキシサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`localhost:9000`です。
+
++ `proxy_host: :9000`
++ `proxy_host: localhost:9000`
+
+## source_host
+Live Reloadを行うWebサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`:8080`です。
+
++ `source_host: :8080`
++ `source_host: localhost:8080`
+
+## tasks
+Live Reloadを行うタスクを管理します。タスク名は任意で設定できます。
+タスクごとに実行するコマンドとファイル監視を設定します。
+コマンドとファイル監視は、タスク単位で制御されます。
+
+```
+tasks:
+  web:
+    aggregate_timeout: 300
+    commands:
+      go:
+        execute: go run main.go
+        needs_restart: true
+    monitor:
+      paths:
+        - ./view
+```
+
+## tasks.{task_name}.aggregate\_timeout
+最初のファイルが変更されてからの遅延を設定できます。
+この設定により、この期間に行われた他の変更を1回の再構築に集約できます。
+設定はミリ秒単位です。デフォルトは`300`です。
+
+```
+tasks:
+  web:
+    aggregate_timeout: 300
+```
+
+## tasks.{task_name}.commands
+Live Reloadを行う際のコマンドを管理できます。コマンド名は任意で設定でき、複数設定が可能です。
+コマンドごとに再起動、標準出力の監視を行います。
+
+```
+tasks:
+  web:
+    commands:
+      go:
+        execute: go build
+      npm:
+        execute: npm start
+```
+
+## tasks.{task_name}.commands.{command_name}.execute
+実行したいコマンドを設定します。
+
+```
+tasks:
+  web:
+    commands:
+      go:
+        execute: go build
+```
+
+## tasks.{task_name}.commands.{command_name}.needs_restart
+ファイル監視で変更が起きた際にコマンドを再実行したい場合に設定します。デフォルトは`false`です。
+
+```
+tasks:
+  web:
+    commands:
+      go:
+        execute: go build
+        needs_restart: true
+```
+
+## tasks.{task_name}.commands.{command_name}.watch_stdout
+コマンド実行時の標準出力を監視します。
+設定したキーワードによってLive Reloadイベントを発火します。
+`needs_restart=true`で再起動した際に、`watch_stdout`で指定したキーワードがあると無限ループします。気をつけましょう。
+
+```
+tasks:
+  web:
+    commands:
+      npm:
+        execute: npm start
+        needs_restart: false
+        watch_stdout:
+          - bundle.js
+```
+
+## tasks.{task_name}.monitor
+ファイル監視を管理します。
+
+```
+tasks:
+  web:
+    monitor:
+      paths:
+        - ./view
+      ignore:
+        - node_modules
+```
+
+## tasks.{task_name}.monitor.paths
+ファイルを監視するディレクトリを指定します。
+ディレクトリは複数設定できます。
+
+```
+tasks:
+  web:
+    monitor:
+      paths:
+        - ./app
+        - ./views
+```
+
+## tasks.{task_name}.monitor.ignore
+除外するファイル、ディレクトリを指定します。
+設定できるパターンは部分一致、パス指定が行なえます。
+**また、*、?等のワイルドカードが使えますが、実装を調整中です。**
+
+```
+tasks:
+  web:
+    monitor:
+      paths:
+        - ./app
+      ignore:
+        - node_modules
+        - ./node_modules
+```
+
+
 
 # todo
 + test
