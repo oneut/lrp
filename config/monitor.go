@@ -1,8 +1,8 @@
 package config
 
 type Monitor struct {
-	Paths  []string
-	Ignore []string `yaml:"ignore"`
+	Paths   []string
+	Ignores []string `yaml:"ignores"`
 }
 
 func (m *Monitor) IsValid() bool {

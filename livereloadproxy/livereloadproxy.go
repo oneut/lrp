@@ -1,138 +1,60 @@
 package livereloadproxy
 
 import (
-	"io/ioutil"
-	"net/http"
-	"net/http/httputil"
-	"strconv"
-	"strings"
-	"time"
-
-	"github.com/omeid/livereload"
-	"github.com/oneut/lrp/command"
 	"github.com/oneut/lrp/config"
-	"github.com/oneut/lrp/monitor"
 )
 
-func NewLivereloadProxy() *LivereloadProxy {
-	return &LivereloadProxy{
-		Config: config.GetConfig(),
-		Tasks:  make(map[string]*Task),
+func NewLivereloadProxy(cfg config.Config) *LivereloadProxy {
+	lrp := &LivereloadProxy{}
+
+	lrp.SetProxy(cfg.GetProxyHost(), cfg.GetSourceHost())
+
+	for name, taskConfig := range cfg.Tasks {
+		lrp.AddTask(name, taskConfig)
 	}
+
+	return lrp
 }
 
 type LivereloadProxy struct {
-	Config     *config.Config
-	Tasks      map[string]*Task
-	Livereload *livereload.Server
+	tasks []*Task
+	proxy *Proxy
+}
+
+func (lrp *LivereloadProxy) SetProxy(proxyHost string, sourceHost string) {
+	lrp.proxy = NewProxy(proxyHost, sourceHost)
+}
+
+func (lrp *LivereloadProxy) AddTask(name string, taskConfig config.Task) {
+	lrp.tasks = append(lrp.tasks, NewTask(name, lrp.proxy, taskConfig))
 }
 
 func (lrp *LivereloadProxy) Run() {
-	lrp.startTasks()
-	lrp.startLivereload()
+	lrp.runTasks()
+	lrp.runProxy()
 }
 
-func (lrp *LivereloadProxy) startTasks() {
-	for name, task := range lrp.Config.Tasks {
-		lrp.startTask(name, task)
+func (lrp *LivereloadProxy) runTasks() {
+	for _, task := range lrp.tasks {
+		task.Run()
 	}
 }
 
-func (lrp *LivereloadProxy) startTask(name string, taskConfig config.Task) {
-	m := monitor.NewMonitor(name, taskConfig.Monitor)
-
-	cmds := make(map[string]command.CommandInterface)
-	for cmdName, cmdConfig := range taskConfig.Commands {
-		cmds[cmdName] = command.NewCommand(name, cmdName, cmdConfig)
-	}
-
-	isReloading := false
-	fn := func(message string) {
-		if isReloading {
-			return
-		}
-
-		isReloading = true
-		go func() {
-			time.Sleep(taskConfig.GetAggregateTimeout())
-			for _, cmd := range cmds {
-				cmd.Restart()
-			}
-			lrp.Livereload.Reload(message, true)
-			isReloading = false
-		}()
-	}
-
-	lrp.Tasks[name] = &Task{
-		Commands: cmds,
-		Monitor:  m,
-	}
-
-	for _, cmd := range cmds {
-		go cmd.Run(fn)
-	}
-	go m.Run(fn)
-}
-
-func (lrp *LivereloadProxy) startLivereload() {
-	lrp.Livereload = livereload.New("LivereloadProxy")
-
-	r := NewRouter()
-	scriptPath := "/livereload.js"
-	r.Handle("/livereload", lrp.Livereload)
-	r.HandleFunc(scriptPath, livereload.LivereloadScript)
-	r.HandleFunc("*", func(w http.ResponseWriter, r *http.Request) {
-		director := func(req *http.Request) {
-			req.URL.Scheme = "http"
-			req.URL.Host = lrp.Config.GetSourceHost()
-		}
-
-		modifier := func(res *http.Response) error {
-			contentType := res.Header.Get("Content-type")
-			if !(strings.Contains(contentType, "text/html")) {
-				return nil
-			}
-			proxyBody := &ProxyBody{res.Body}
-			buf := proxyBody.CreateBytesBufferWithLiveReloadScriptPath(scriptPath)
-			s := buf.String()
-			s = strings.Replace(s, lrp.Config.GetSourceHost(), lrp.Config.GetProxyHost(), -1)
-			res.Header.Set("Content-Length", strconv.Itoa(len(s)))
-			res.Body = ioutil.NopCloser(strings.NewReader(s))
-			return nil
-		}
-
-		rp := &httputil.ReverseProxy{
-			Director:       director,
-			ModifyResponse: modifier,
-			Transport:      &RetryTransport{},
-		}
-		rp.ServeHTTP(w, r)
-	})
-	go func() {
-		defer lrp.Livereload.Close()
-		http.ListenAndServe(lrp.Config.GetProxyHost(), r)
-	}()
+func (lrp *LivereloadProxy) runProxy() {
+	lrp.proxy.Run()
 }
 
 func (lrp *LivereloadProxy) Stop() {
+	lrp.stopProxy()
 	lrp.stopTasks()
-	lrp.stopLivereload()
 }
 
 func (lrp *LivereloadProxy) stopTasks() {
-	for name, _ := range lrp.Config.Tasks {
-		lrp.stopTask(name)
+	for _, task := range lrp.tasks {
+		task.Stop()
 	}
 }
 
-func (lrp *LivereloadProxy) stopTask(name string) {
-	task := lrp.Tasks[name]
-	for _, cmd := range task.Commands {
-		cmd.Stop()
-	}
-	task.Monitor.Stop()
-}
-
-func (lrp *LivereloadProxy) stopLivereload() {
-	lrp.Livereload.Close()
+func (lrp *LivereloadProxy) stopProxy() {
+	lrp.proxy.Close()
 }

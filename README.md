@@ -75,7 +75,7 @@ tasks:
       webpack:
         execute: npm start --prefix ./public/assets
         needs_restart: false
-        watch_stdout:
+        watch_stdouts:
           - bundle.js
       test:
         execute: npm test --prefix ./public/assets
@@ -83,7 +83,7 @@ tasks:
     monitor:
       paths:
         - ./public/assets
-      ignore:
+      ignores:
         - node_modules
 ```
 
@@ -166,10 +166,10 @@ tasks:
         needs_restart: true
 ```
 
-## tasks.{task_name}.commands.{command_name}.watch_stdout
+## tasks.{task_name}.commands.{command_name}.watch_stdouts
 コマンド実行時の標準出力を監視します。
 設定したキーワードによってLive Reloadイベントを発火します。
-`needs_restart=true`で再起動した際に、`watch_stdout`で指定したキーワードがあると無限ループします。気をつけましょう。
+`needs_restart=true`で再起動した際に、`watch_stdouts`で指定したキーワードがあると無限ループします。気をつけましょう。
 
 ```
 tasks:
@@ -178,7 +178,7 @@ tasks:
       npm:
         execute: npm start
         needs_restart: false
-        watch_stdout:
+        watch_stdouts:
           - bundle.js
 ```
 
@@ -191,7 +191,7 @@ tasks:
     monitor:
       paths:
         - ./view
-      ignore:
+      ignores:
         - node_modules
 ```
 
@@ -208,7 +208,7 @@ tasks:
         - ./views
 ```
 
-## tasks.{task_name}.monitor.ignore
+## tasks.{task_name}.monitor.ignores
 除外するファイル、ディレクトリを指定します。
 設定できるパターンは部分一致、パス指定が行なえます。
 **また、*、?等のワイルドカードが使えますが、実装を調整中です。**
@@ -219,7 +219,7 @@ tasks:
     monitor:
       paths:
         - ./app
-      ignore:
+      ignores:
         - node_modules
         - ./node_modules
 ```

@@ -17,9 +17,11 @@ func NewCommand(name string, commandName string, commandConfig config.Command) C
 	}
 
 	return &Command{
-		CommandConfig: commandConfig,
-		CommandName:   commandName,
-		Name:          name,
+		commandName:  commandName,
+		name:         name,
+		execute:      commandConfig.Execute,
+		needsRestart: commandConfig.NeedsRestart,
+		watchStdouts: commandConfig.WatchStdouts,
 	}
 }
 
@@ -32,21 +34,23 @@ type CommandInterface interface {
 }
 
 type Command struct {
-	Cmd           *exec.Cmd
-	CommandConfig config.Command
-	CommandName   string
-	Name          string
-	Callback      func(string)
+	cmd          *exec.Cmd
+	commandName  string
+	name         string
+	callback     func(string)
+	execute      string
+	needsRestart bool
+	watchStdouts []string
 }
 
 func (c *Command) Run(fn func(string)) {
-	logger.InfoCommand(c.Name, c.CommandName, "start")
-	c.Callback = fn
+	logger.InfoCommand(c.name, c.commandName, "start")
+	c.callback = fn
 	c.Start()
 }
 
 func (c *Command) Start() {
-	args, err := shellwords.Parse(c.CommandConfig.Execute)
+	args, err := shellwords.Parse(c.execute)
 	if err != nil {
 		panic(err)
 	}
@@ -55,59 +59,58 @@ func (c *Command) Start() {
 	case 0:
 		panic("command.execute is required")
 	case 1:
-		c.Cmd = exec.Command(args[0])
+		c.cmd = exec.Command(args[0])
 	default:
-		c.Cmd = exec.Command(args[0], args[1:]...)
+		c.cmd = exec.Command(args[0], args[1:]...)
 	}
 
-	stdout, _ := c.Cmd.StdoutPipe()
+	stdout, _ := c.cmd.StdoutPipe()
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
 			line := scanner.Text()
-			logger.InfoCommandStdout(c.Name, c.CommandName, line)
+			logger.InfoCommandStdout(c.name, c.commandName, line)
 			c.watchStdout(line)
 		}
 	}()
 
 	defer c.Kill()
-	c.Cmd.Start()
-	c.Cmd.Wait()
+	c.cmd.Start()
+	c.cmd.Wait()
 }
 
 func (c *Command) watchStdout(line string) {
-	if len(c.CommandConfig.WatchStdout) == 0 {
+	if len(c.watchStdouts) == 0 {
 		return
 	}
 
-	for _, value := range c.CommandConfig.WatchStdout {
+	for _, value := range c.watchStdouts {
 		if strings.Contains(line, value) {
-			c.Callback("stdout notify")
-			logger.InfoCommand(c.Name, c.CommandName, "watch_stdout is fired:"+value)
+			c.callback("stdout notify")
+			logger.InfoCommand(c.name, c.commandName, "watch_stdouts is fired:"+value)
 			break
 		}
 	}
 }
 
 func (c *Command) Restart() {
-	if c.CommandConfig.NeedsRestart {
+	if c.needsRestart {
 		c.Kill()
 		c.Start()
 	}
 }
 
 func (c *Command) Kill() bool {
-	if c.Cmd.Process == nil {
+	if c.cmd.Process == nil {
 		return false
 	}
 
-	c.Cmd.Process.Signal(syscall.SIGTERM)
-
+	c.cmd.Process.Signal(syscall.SIGTERM)
 	return true
 }
 
 func (c *Command) Stop() {
 	if c.Kill() {
-		logger.InfoCommand(c.Name, c.CommandName, "stop")
+		logger.InfoCommand(c.name, c.commandName, "stop")
 	}
 }

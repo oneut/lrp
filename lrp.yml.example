@@ -15,7 +15,7 @@ tasks:
       webpack:
         execute: npm start --prefix ./public/assets
         needs_restart: false
-        watch_stdout:
+        watch_stdouts:
           - bundle.js
       test:
         execute: npm test --prefix ./public/assets
@@ -23,5 +23,5 @@ tasks:
     monitor:
       paths:
         - ./public/assets
-      ignore:
+      ignores:
         - node_modules

@@ -12,12 +12,13 @@ type ProxyBody struct {
 	Body io.ReadCloser
 }
 
-func (pb *ProxyBody) CreateBytesBufferWithLiveReloadScriptPath(scriptPath string) bytes.Buffer {
+func (pb *ProxyBody) getBytesBufferWithLiveReloadScriptPath(scriptPath string) bytes.Buffer {
 	defer pb.Body.Close()
 	document, err := html.Parse(pb.Body)
 	if err != nil {
 		panic(err)
 	}
+
 	body := pb.FindFirstChild(document, atom.Body)
 	body.AppendChild(&html.Node{
 		Type:     html.ElementNode,
@@ -30,7 +31,10 @@ func (pb *ProxyBody) CreateBytesBufferWithLiveReloadScriptPath(scriptPath string
 			},
 		},
 	})
-	return pb.ConvertBytesBufferFromHTMLNode(document)
+
+	var buf bytes.Buffer
+	html.Render(&buf, document)
+	return buf
 }
 
 func (pb *ProxyBody) FindFirstChild(node *html.Node, a atom.Atom) *html.Node {
@@ -38,8 +42,9 @@ func (pb *ProxyBody) FindFirstChild(node *html.Node, a atom.Atom) *html.Node {
 		if childNode.Type != html.ElementNode {
 			continue
 		}
+
 		if childNode.DataAtom == a {
-			return node
+			return childNode
 		}
 		if n := pb.FindFirstChild(childNode, a); n != nil {
 			return n
@@ -48,13 +53,4 @@ func (pb *ProxyBody) FindFirstChild(node *html.Node, a atom.Atom) *html.Node {
 	}
 
 	return nil
-}
-
-func (pb *ProxyBody) ConvertBytesBufferFromHTMLNode(node *html.Node) bytes.Buffer {
-	var buf bytes.Buffer
-	for childNode := node.FirstChild; childNode != nil; childNode = childNode.NextSibling {
-		html.Render(&buf, childNode)
-	}
-
-	return buf
 }

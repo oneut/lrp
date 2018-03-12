@@ -1,23 +1,15 @@
 package config
 
 import (
-	"io/ioutil"
-
 	"gopkg.in/yaml.v2"
 )
 
 var defaultProxyHost string = ":9000"
 var defaultSourceHost string = ":8080"
 
-func GetConfig() *Config {
-	buf, err := ioutil.ReadFile("lrp.yml")
-	if err != nil {
-		panic(err)
-	}
-
-	config := &Config{}
-	yaml.Unmarshal(buf, config)
-
+func CreateConfig(yamlBuf []byte) Config {
+	config := Config{}
+	yaml.Unmarshal(yamlBuf, &config)
 	return config
 }
 
