@@ -15,13 +15,21 @@ LRPはgolang製のLive Reload Proxyです。
 # モチベーション
 + livereloadを簡単にしたい
 + 汎用的なlivereload環境を作りたい
-    + 特定の言語に依存しないLiveReload環境を作りたい
-    + 複数の言語を組み合わせた環境に対応したい
+    + 特定の言語に依存しない
+    + 複数のプログラミング言語を扱える
 + コンパイルが必要な言語も自動的に再コンパイルしたい
 + 設定を簡単にしたい
 + golangで何かを作ってみたかった
     + 初golangアプリケーション
-+ mattnさん作のgoemonがあるが、プロキシサーバは含まれていなかったので作ってみることにした
++ 各livereloadツールのメリット・デメリット
+    + goemon
+        + Yamlで定義できるのが便利
+        + コマンドの起動を制御できるのが便利
+        + プロキシサーバは含まれていなかったので、エクステンション等が必要
+    + LiveReloadX
+        + staticが便利
+        + ファイル監視が柔軟にできない？
+        + コマンドの起動を制御できない
 
 # 特徴
 + プロキシサーバを経由してLiveReloadを行う
@@ -58,8 +66,11 @@ lrp start
 実行するためには`lrp.yml`の定義が必須です。
 
 ```
-proxy_host: "localhost:9000"
-source_host: "localhost:8080"
+proxy:
+  host: "localhost:9000"
+source:
+  host: "localhost:8080"
+  static_path: ./
 tasks:
   web:
     aggregate_timeout: 300
@@ -88,17 +99,49 @@ tasks:
 ```
 
 # オプション
-## proxy_host
-Live Reloadのプロキシサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`localhost:9000`です。
+## proxy
+Live Reloadのプロキシサーバを管理します。
 
-+ `proxy_host: :9000`
-+ `proxy_host: localhost:9000`
+## proxy.host
+Live Reloadのプロキシサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`:9000`です。
 
-## source_host
-Live Reloadを行うWebサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`:8080`です。
+```
+proxy:
+  host: ":9000"
+```
 
-+ `source_host: :8080`
-+ `source_host: localhost:8080`
+```
+proxy:
+  host: "localhost:9000"
+```
+
+## proxy.static_path
+プロキシサーバを静的Webサーバとして起動できます。任意の設定です。
+
+```
+source:
+  static_path: ./
+```
+
+もし、source.static_pathとsource.hostで同じパスが存在した場合は、static_pathが優先されます。    
+そのため、本番サーバに対して一部のフィアルだけローカルに差し替えるようなことができます。
+
+## source
+Live Reloadを行うWebサーバを管理します。
+
+## source.host
+Live Reloadを行うWebサーバのドメイン、ホスト名、ポートを指定します。
+設定は任意です。
+
+```
+source:
+  host: ":8080"
+```
+
+```
+source:
+  host: "localhost:8080"
+```
 
 ## tasks
 Live Reloadを行うタスクを管理します。タスク名は任意で設定できます。
