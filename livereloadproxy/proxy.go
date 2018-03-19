@@ -37,7 +37,7 @@ func (p *Proxy) Run() {
 	r.HandleFunc(p.scriptPath, livereload.LivereloadScript)
 
 	if p.hasStaticPath() {
-		fs := http.Dir("./")
+		fs := http.Dir(p.staticPath)
 		r.HandleFunc("*", func(w http.ResponseWriter, r *http.Request) {
 			p.handleStatic(fs, w, r)
 		})
@@ -107,25 +107,34 @@ func (p *Proxy) handleStatic(fs http.FileSystem, w http.ResponseWriter, r *http.
 
 		defer ff.Close()
 		dd, err := ff.Stat()
-		if err == nil {
-			name = index
-			d = dd
-			f = ff
+		if err != nil {
+			if !(p.hasSourceHost()) {
+				panic(err)
+			}
+
+			p.handleReverseProxy(w, r)
+			return
 		}
+
+		name = index
+		d = dd
+		f = ff
 	}
 
-	buf := bytes.NewBuffer(nil)
-	io.Copy(buf, f) // Error handling elided for brevity.
-	s := buf.String()
-	proxyBody := &ProxyBody{
-		ioutil.NopCloser(strings.NewReader(s)),
+	buf := &bytes.Buffer{}
+	io.Copy(buf, f)
+	contentType := http.DetectContentType(buf.Bytes())
+	var reader *bytes.Reader
+	if strings.Contains(contentType, "text/html") {
+		proxyBody := &ProxyBody{
+			ioutil.NopCloser(bytes.NewReader(buf.Bytes())),
+		}
+		convertedBuf := proxyBody.getBytesBufferWithLiveReloadScriptPath(p.scriptPath)
+		reader = bytes.NewReader(convertedBuf.Bytes())
+	} else {
+		reader = bytes.NewReader(buf.Bytes())
 	}
 
-	convertedBuf := proxyBody.getBytesBufferWithLiveReloadScriptPath(p.scriptPath)
-
-	reader := bytes.NewReader(convertedBuf.Bytes())
-
-	// serveContent will check modification time
 	http.ServeContent(w, r, d.Name(), d.ModTime(), reader)
 }
 
