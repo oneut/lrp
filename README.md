@@ -1,7 +1,3 @@
-# **WIP**
-
-Exampleで動作はするようにしていますが、まだ作り込みが足りません
-
 # LRP
 
 LRPはgolang製のLive Reload Proxyです。
