@@ -1,7 +1,3 @@
-# **WIP**
-
-Exampleで動作はするようにしていますが、まだ作り込みが足りません
-
 # LRP
 
 LRPはgolang製のLive Reload Proxyです。
@@ -14,14 +10,28 @@ LRPはgolang製のLive Reload Proxyです。
 
 # モチベーション
 + livereloadを簡単にしたい
-+ 汎用的なlivereload環境を作りたい
-    + 特定の言語に依存しないLiveReload環境を作りたい
-    + 複数の言語を組み合わせた環境に対応したい
-+ コンパイルが必要な言語も自動的に再コンパイルしたい
-+ 設定を簡単にしたい
+    + 汎用的に使える
+    + 特定の言語に依存しない
+    + 複数のプログラミング言語を考慮できる
+    + コンパイルが必要な言語は自動的に再コンパイルしたい
+    + 設定を簡単にしたい
 + golangで何かを作ってみたかった
     + 初golangアプリケーション
-+ mattnさん作のgoemonがあるが、プロキシサーバは含まれていなかったので作ってみることにした
++ 各livereloadツールのメリット・デメリットを検討した結果、昨日をいいとこ取りすると便利になりそうだった
+    + BrowserSync
+        + 特定言語に依存していない
+        + プロキシサーバとして動く
+        + コマンドの起動を制御できない
+    + LiveReloadX
+        + 特定言語に依存していない
+        + staticが便利
+        + プロキシサーバとして動く
+        + コマンドの起動を制御できない
+    + goemon
+        + 特定言語に依存していない
+        + Yamlで定義できる
+        + コマンドの起動を制御できる
+        + プロキシサーバは含まれていなかったので、エクステンション等が必要
 
 # 特徴
 + プロキシサーバを経由してLiveReloadを行う
@@ -29,7 +39,7 @@ LRPはgolang製のLive Reload Proxyです。
     + htmlに特定のスクリプトを差し込む必要がない
 + 設定をyamlで定義できる
 + ファイル監視ができる
-    + 変更を検知してLireReloadイベントを発火が可能
+    + 変更を検知してLireReloadイベントの発火が可能
     + ファイル作成
     + ファイル更新
     + ファイル削除
@@ -37,10 +47,10 @@ LRPはgolang製のLive Reload Proxyです。
     + ディレクトリ削除
     + 除外設定
 + コマンドを管理できる
-    + restartを簡単に行える
-    + 標準出力のワードでLiveReloadイベントの発火が可能	
-+ ポーリング機能はない
-    + ローカルで動かすことを目的としているので必要がない
+    + restartを管理できる
+    + 標準出力のキーワードでLiveReloadイベントの発火が可能	
++ ポーリング機能は今のところない
+    + ローカルで動かすことを目的としているので優先度が低い
     + 必要そうなら実装を検討する
         + 候補: [radovskyb/watcher](https://github.com/radovskyb/watcher)
 
@@ -58,8 +68,11 @@ lrp start
 実行するためには`lrp.yml`の定義が必須です。
 
 ```
-proxy_host: "localhost:9000"
-source_host: "localhost:8080"
+proxy:
+  host: "localhost:9000"
+source:
+  host: "localhost:8080"
+  static_path: ./
 tasks:
   web:
     aggregate_timeout: 300
@@ -88,22 +101,54 @@ tasks:
 ```
 
 # オプション
-## proxy_host
-Live Reloadのプロキシサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`localhost:9000`です。
+## proxy
+Live Reloadのプロキシサーバを管理します。
 
-+ `proxy_host: :9000`
-+ `proxy_host: localhost:9000`
+## proxy.host
+Live Reloadのプロキシサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`:9000`です。
 
-## source_host
-Live Reloadを行うWebサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`:8080`です。
+```
+proxy:
+  host: ":9000"
+```
 
-+ `source_host: :8080`
-+ `source_host: localhost:8080`
+```
+proxy:
+  host: "localhost:9000"
+```
+
+## proxy.static_path
+プロキシサーバ経由で静的ファイルにアクセスできます。任意の設定です。
+
+```
+source:
+  static_path: ./static
+```
+
+もし、source.static_pathとsource.hostで同じパスが存在した場合は、static_pathが優先されます。    
+そのため、Webサーバに対してアクセスさえできれば、一部のファイルだけ`static_path`に存在するローカルファイルに差し替えることができます。
+
+## source
+Live Reloadを行うWebサーバを管理します。
+
+## source.host
+Live Reloadを行うWebサーバのドメイン、ホスト名、ポートを指定します。
+設定は任意です。
+
+```
+source:
+  host: ":8080"
+```
+
+```
+source:
+  host: "localhost:8080"
+```
 
 ## tasks
 Live Reloadを行うタスクを管理します。タスク名は任意で設定できます。
 タスクごとに実行するコマンドとファイル監視を設定します。
-コマンドとファイル監視は、タスク単位で制御されます。
+コマンドとファイル監視は、タスク単位で制御され、複数のタスクを設定できます。
 
 ```
 tasks:
