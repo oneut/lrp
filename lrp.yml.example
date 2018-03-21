@@ -1,7 +1,9 @@
 proxy: 
+  scheme: "https"
   host: "localhost:9000"
-  static_path: ./
+  static_path: ./static
 source:
+  scheme: "https"
   host: "localhost:8080"
 tasks:
   web:

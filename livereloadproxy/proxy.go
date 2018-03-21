@@ -6,28 +6,35 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/omeid/livereload"
+	"github.com/oneut/lrp/config"
 )
 
-func NewProxy(proxyHost string, staticPath string, sourceHost string) *Proxy {
+func NewProxy(proxy config.Proxy, source config.Source) *Proxy {
 	return &Proxy{
 		livereload: livereload.New("LivereloadProxy"),
-		proxyHost:  proxyHost,
-		sourceHost: sourceHost,
-		staticPath: staticPath,
+		proxyURL: &url.URL{
+			Scheme: proxy.Scheme,
+			Host:   proxy.Host,
+		},
+		staticPath: proxy.StaticPath,
+		sourceURL: &url.URL{
+			Scheme: source.GetScheme(),
+			Host:   source.Host,
+		},
 		scriptPath: "/livereload.js",
 	}
 }
 
 type Proxy struct {
 	livereload *livereload.Server
-	proxyHost  string
-	sourceHost string
+	proxyURL   *url.URL
 	scriptPath string
+	sourceURL  *url.URL
 	staticPath string
 }
 
@@ -47,7 +54,7 @@ func (p *Proxy) Run() {
 
 	go func() {
 		defer p.livereload.Close()
-		http.ListenAndServe(p.proxyHost, r)
+		http.ListenAndServe(p.proxyURL.Host, r)
 	}()
 }
 
@@ -140,20 +147,37 @@ func (p *Proxy) handleStatic(fs http.FileSystem, w http.ResponseWriter, r *http.
 
 func (p *Proxy) handleReverseProxy(w http.ResponseWriter, r *http.Request) {
 	director := func(req *http.Request) {
-		req.URL.Scheme = "http"
-		req.URL.Host = p.sourceHost
+		req.URL.Scheme = p.sourceURL.Scheme
+		req.URL.Host = p.sourceURL.Host
+		req.Host = p.sourceURL.Host
+		req.Header.Del("Accept-Encoding")
 	}
 
 	modifier := func(res *http.Response) error {
+		res.Header.Del("Content-Length")
+		res.Header.Del("Content-Encoding")
+		res.Header.Set("Cache-Control", "no-store")
+
 		contentType := res.Header.Get("Content-type")
 		if !(strings.Contains(contentType, "text/html")) {
 			return nil
 		}
+
+		defer res.Body.Close()
 		proxyBody := &ProxyBody{res.Body}
 		buf := proxyBody.getBytesBufferWithLiveReloadScriptPath(p.scriptPath)
+
 		s := buf.String()
-		s = strings.Replace(s, p.sourceHost, p.proxyHost, -1)
-		res.Header.Set("Content-Length", strconv.Itoa(len(s)))
+
+		proxySchemeHost := p.proxyURL.String()
+		sourceSchemeHost := p.sourceURL.String()
+		sourceHost := (&url.URL{
+			Host: p.sourceURL.Host,
+		}).String()
+
+		s = strings.Replace(s, sourceSchemeHost, proxySchemeHost, -1)
+		s = strings.Replace(s, sourceHost, proxySchemeHost, -1)
+
 		res.Body = ioutil.NopCloser(strings.NewReader(s))
 		return nil
 	}
@@ -175,7 +199,7 @@ func (p *Proxy) hasStaticPath() bool {
 }
 
 func (p *Proxy) hasSourceHost() bool {
-	if p.sourceHost == "" {
+	if p.sourceURL.Host == "" {
 		return false
 	}
 

@@ -8,9 +8,8 @@ func NewLivereloadProxy(cfg config.Config) *LivereloadProxy {
 	lrp := &LivereloadProxy{}
 
 	lrp.SetProxy(
-		cfg.Proxy.GetHost(),
-		cfg.Proxy.StaticPath,
-		cfg.Source.Host,
+		cfg.Proxy,
+		cfg.Source,
 	)
 
 	for name, taskConfig := range cfg.Tasks {
@@ -25,8 +24,8 @@ type LivereloadProxy struct {
 	proxy *Proxy
 }
 
-func (lrp *LivereloadProxy) SetProxy(proxyHost string, staticPath string, sourceHost string) {
-	lrp.proxy = NewProxy(proxyHost, staticPath, sourceHost)
+func (lrp *LivereloadProxy) SetProxy(proxy config.Proxy, source config.Source) {
+	lrp.proxy = NewProxy(proxy, source)
 }
 
 func (lrp *LivereloadProxy) AddTask(name string, taskConfig config.Task) {
