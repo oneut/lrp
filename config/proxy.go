@@ -4,9 +4,10 @@ var defaultProxyScheme string = "http"
 var defaultProxyHost string = ":9000"
 
 type Proxy struct {
-	Scheme     string
-	Host       string
-	StaticPath string `yaml:"static_path"`
+	Scheme      string
+	Host        string
+	StaticPath  string `yaml:"static_path"`
+	BrowserOpen string `yaml:"browser_open"`
 }
 
 func (p *Proxy) GetScheme() string {
@@ -23,4 +24,12 @@ func (p *Proxy) GetHost() string {
 	}
 
 	return p.Host
+}
+
+func (p *Proxy) IsBrowserOpen() bool {
+	if p.BrowserOpen == "none" {
+		return false
+	}
+
+	return true
 }

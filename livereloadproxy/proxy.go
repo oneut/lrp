@@ -12,16 +12,18 @@ import (
 
 	"github.com/omeid/livereload"
 	"github.com/oneut/lrp/config"
+	"github.com/skratchdot/open-golang/open"
 )
 
 func NewProxy(proxy config.Proxy, source config.Source) *Proxy {
 	return &Proxy{
 		livereload: livereload.New("LivereloadProxy"),
 		proxyURL: &url.URL{
-			Scheme: proxy.Scheme,
+			Scheme: proxy.GetScheme(),
 			Host:   proxy.Host,
 		},
-		staticPath: proxy.StaticPath,
+		staticPath:    proxy.StaticPath,
+		isBrowserOpen: proxy.IsBrowserOpen(),
 		sourceURL: &url.URL{
 			Scheme: source.GetScheme(),
 			Host:   source.Host,
@@ -31,11 +33,12 @@ func NewProxy(proxy config.Proxy, source config.Source) *Proxy {
 }
 
 type Proxy struct {
-	livereload *livereload.Server
-	proxyURL   *url.URL
-	scriptPath string
-	sourceURL  *url.URL
-	staticPath string
+	livereload    *livereload.Server
+	proxyURL      *url.URL
+	scriptPath    string
+	isBrowserOpen bool
+	sourceURL     *url.URL
+	staticPath    string
 }
 
 func (p *Proxy) Run() {
@@ -56,6 +59,13 @@ func (p *Proxy) Run() {
 		defer p.livereload.Close()
 		http.ListenAndServe(p.proxyURL.Host, r)
 	}()
+
+	if p.isBrowserOpen {
+		err := open.Start(p.proxyURL.String())
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func (p *Proxy) Close() {

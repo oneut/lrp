@@ -131,12 +131,21 @@ proxy:
 プロキシサーバ経由で静的ファイルにアクセスできます。任意の設定です。
 
 ```
-source:
+proxy:
   static_path: ./static
 ```
 
-もし、source.static_pathとsource.hostで同じパスが存在した場合は、static_pathが優先されます。    
+もし、proxy.static_pathとsource.hostで同じパスが存在した場合は、static_pathが優先されます。    
 そのため、Webサーバに対してアクセスさえできれば、一部のファイルだけ`static_path`に存在するローカルファイルに差し替えることができます。
+
+## proxy.browser_open
+ブラウザの自動オープンを制御します。デフォルトは自動でブラウザがオープンします。
+ブラウザを自動でオープンしたくない場合は、`none`を設定してください。
+
+```
+proxy:
+  browser_open: "none"
+```
 
 ## source
 Live Reloadを行うWebサーバを管理します。
