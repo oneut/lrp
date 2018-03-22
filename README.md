@@ -64,15 +64,17 @@ go get -u github.com/oneut/lrp
 lrp start
 ```
 
-# YAML Example
+# Yaml Example
 実行するためには`lrp.yml`の定義が必須です。
 
 ```
 proxy:
+  scheme: "https"
   host: "localhost:9000"
-source:
-  host: "localhost:8080"
   static_path: ./
+source:
+  scheme: "https"
+  host: "localhost:8080"
 tasks:
   web:
     aggregate_timeout: 300
@@ -104,6 +106,14 @@ tasks:
 ## proxy
 Live Reloadのプロキシサーバを管理します。
 
+## proxy.scheme
+URLスキームを定義できます。任意の設定です。デフォルトは`http`です。
+
+```
+proxy:
+  scheme: "https"
+```
+
 ## proxy.host
 Live Reloadのプロキシサーバのドメイン、ホスト名、ポートを指定します。デフォルトは`:9000`です。
 
@@ -130,6 +140,14 @@ source:
 
 ## source
 Live Reloadを行うWebサーバを管理します。
+
+## source.scheme
+URLスキームを定義できます。任意の設定です。デフォルトは`http`です。
+
+```
+source:
+  scheme: "https"
+```
 
 ## source.host
 Live Reloadを行うWebサーバのドメイン、ホスト名、ポートを指定します。
@@ -284,3 +302,5 @@ tasks:
 + monitor定義で、イベント発火したファイル名を動的に取得
     + テストで特定ファイルのテスト実行が簡単にできそう
     + 正規表現でマッチ出来たら良さそう
++ README.mdを英語にする。
++ 取得したHTMLの特定キーワードの置換処理
