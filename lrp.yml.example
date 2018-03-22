@@ -5,6 +5,9 @@ proxy:
 source:
   scheme: "https"
   host: "localhost:8080"
+  replaces:
+    - search: "//cdn.example.com"
+      replase: "//localhost:9000"
 tasks:
   web:
     aggregate_timeout: 300

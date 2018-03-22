@@ -15,30 +15,49 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-func NewProxy(proxy config.Proxy, source config.Source) *Proxy {
-	return &Proxy{
+func NewProxy(proxyConfig config.Proxy, sourceConfig config.Source) *Proxy {
+	proxy := &Proxy{
 		livereload: livereload.New("LivereloadProxy"),
 		proxyURL: &url.URL{
-			Scheme: proxy.GetScheme(),
-			Host:   proxy.Host,
+			Scheme: proxyConfig.GetScheme(),
+			Host:   proxyConfig.Host,
 		},
-		staticPath:    proxy.StaticPath,
-		isBrowserOpen: proxy.IsBrowserOpen(),
+		staticPath:    proxyConfig.StaticPath,
+		isBrowserOpen: proxyConfig.IsBrowserOpen(),
 		sourceURL: &url.URL{
-			Scheme: source.GetScheme(),
-			Host:   source.Host,
+			Scheme: sourceConfig.GetScheme(),
+			Host:   sourceConfig.Host,
 		},
 		scriptPath: "/livereload.js",
 	}
+
+	for _, replace := range sourceConfig.Replaces {
+		if replace.Search == "" {
+			continue
+		}
+
+		if replace.Replace == "" {
+			continue
+		}
+
+		proxy.AddSourceReplace(replace.Search, replace.Replace)
+	}
+
+	return proxy
 }
 
 type Proxy struct {
-	livereload    *livereload.Server
-	proxyURL      *url.URL
-	scriptPath    string
-	isBrowserOpen bool
-	sourceURL     *url.URL
-	staticPath    string
+	livereload     *livereload.Server
+	proxyURL       *url.URL
+	scriptPath     string
+	isBrowserOpen  bool
+	sourceURL      *url.URL
+	staticPath     string
+	sourceReplaces []*SourceReplace
+}
+
+func (p *Proxy) AddSourceReplace(search string, replace string) {
+	p.sourceReplaces = append(p.sourceReplaces, NewSourceReplace(search, replace))
 }
 
 func (p *Proxy) Run() {
@@ -187,6 +206,9 @@ func (p *Proxy) handleReverseProxy(w http.ResponseWriter, r *http.Request) {
 
 		s = strings.Replace(s, sourceSchemeHost, proxySchemeHost, -1)
 		s = strings.Replace(s, sourceHost, proxySchemeHost, -1)
+		for _, sourceReplace := range p.sourceReplaces {
+			s = sourceReplace.Replace(s)
+		}
 
 		res.Body = ioutil.NopCloser(strings.NewReader(s))
 		return nil

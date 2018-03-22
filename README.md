@@ -172,6 +172,36 @@ source:
   host: "localhost:8080"
 ```
 
+## source.replaces
+プロキシを経由してアクセスしているサイトのHTMLデータを条件を指定して置換します。  
+複数の設定が可能です。
+
+## source.replaces.-.search
+検索条件になるキーワードを指定します。
+
+```
+source:
+  host: "localhost:8080"
+  replaces:
+    - search: "//cdn.example.com"
+      replase: "//localhost:9000"
+```
+
+
+## source.replaces.-.replace
+検索条件に対して置換されるキーワードを指定します
+
+```
+source:
+  host: "localhost:8080"
+  replaces:
+    - search: "//cdn.example.com"
+      replase: "//localhost:9000"
+```
+
+## source.replaces.
+
+
 ## tasks
 Live Reloadを行うタスクを管理します。タスク名は任意で設定できます。
 タスクごとに実行するコマンドとファイル監視を設定します。
