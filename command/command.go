@@ -74,6 +74,15 @@ func (c *Command) Start() {
 		}
 	}()
 
+	stdouterr, _ := c.cmd.StderrPipe()
+	go func() {
+		scanner := bufio.NewScanner(stdouterr)
+		for scanner.Scan() {
+			line := scanner.Text()
+			logger.InfoCommandStdout(c.name, c.commandName, line)
+		}
+	}()
+
 	defer c.Kill()
 	c.cmd.Start()
 	c.cmd.Wait()
