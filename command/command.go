@@ -74,9 +74,9 @@ func (c *Command) Start() {
 		}
 	}()
 
-	stdouterr, _ := c.cmd.StderrPipe()
+	stderr, _ := c.cmd.StderrPipe()
 	go func() {
-		scanner := bufio.NewScanner(stdouterr)
+		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			line := scanner.Text()
 			logger.InfoCommandStdout(c.name, c.commandName, line)

@@ -49,6 +49,8 @@ LRPはgolang製のLive Reload Proxyです。
 + コマンドを管理できる
     + restartを管理できる
     + 標準出力のキーワードでLive Reloadイベントの発火が可能	
++ 静的サーバとしての起動
+  + プロキシサーバとして使用した際にはスタブ機能として動作
 + ポーリング機能は今のところない
     + ローカルで動かすことを目的としているので優先度が低い
     + 必要そうなら実装を検討する
@@ -170,6 +172,44 @@ source:
 ```
 source:
   host: "localhost:8080"
+```
+
+## source.replaces
+プロキシを経由してアクセスしているサイトのHTMLデータを条件を指定して置換します。  
+複数の設定が可能です。
+
+## source.replaces.-.search
+検索条件になるキーワードを指定します。
+
+```
+source:
+  host: "localhost:8080"
+  replaces:
+    - search: "//cdn.example.com"
+      replase: "//localhost:9000"
+```
+
+## source.replaces.-.replace
+検索条件に対して置換されるキーワードを指定します
+
+```
+source:
+  host: "localhost:8080"
+  replaces:
+    - search: "//cdn.example.com"
+      replase: "//localhost:9000"
+```
+
+## source.replaces.-.regexp
+検索条件に正規表現の使用を指定します。デフォルトは`false`です。
+
+```
+source:
+  host: "localhost:8080"
+  replaces:
+    - search: "abc(.+)"
+      replase: "$1"
+      regexp: true
 ```
 
 ## tasks

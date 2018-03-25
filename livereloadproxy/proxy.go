@@ -15,30 +15,45 @@ import (
 	"github.com/skratchdot/open-golang/open"
 )
 
-func NewProxy(proxy config.Proxy, source config.Source) *Proxy {
-	return &Proxy{
+func NewProxy(proxyConfig config.Proxy, sourceConfig config.Source) *Proxy {
+	proxy := &Proxy{
 		livereload: livereload.New("LivereloadProxy"),
 		proxyURL: &url.URL{
-			Scheme: proxy.GetScheme(),
-			Host:   proxy.Host,
+			Scheme: proxyConfig.GetScheme(),
+			Host:   proxyConfig.Host,
 		},
-		staticPath:    proxy.StaticPath,
-		isBrowserOpen: proxy.IsBrowserOpen(),
+		staticPath:    proxyConfig.StaticPath,
+		isBrowserOpen: proxyConfig.IsBrowserOpen(),
 		sourceURL: &url.URL{
-			Scheme: source.GetScheme(),
-			Host:   source.Host,
+			Scheme: sourceConfig.GetScheme(),
+			Host:   sourceConfig.Host,
 		},
 		scriptPath: "/livereload.js",
 	}
+
+	for _, replace := range sourceConfig.Replaces {
+		if !(replace.IsValid()) {
+			continue
+		}
+
+		proxy.AddSourceReplacer(replace)
+	}
+
+	return proxy
 }
 
 type Proxy struct {
-	livereload    *livereload.Server
-	proxyURL      *url.URL
-	scriptPath    string
-	isBrowserOpen bool
-	sourceURL     *url.URL
-	staticPath    string
+	livereload      *livereload.Server
+	proxyURL        *url.URL
+	scriptPath      string
+	isBrowserOpen   bool
+	sourceURL       *url.URL
+	staticPath      string
+	sourceReplacers []SourceReplacer
+}
+
+func (p *Proxy) AddSourceReplacer(replaceConfig config.Replace) {
+	p.sourceReplacers = append(p.sourceReplacers, NewSourceReplacer(replaceConfig))
 }
 
 func (p *Proxy) Run() {
@@ -166,6 +181,7 @@ func (p *Proxy) handleReverseProxy(w http.ResponseWriter, r *http.Request) {
 	modifier := func(res *http.Response) error {
 		res.Header.Del("Content-Length")
 		res.Header.Del("Content-Encoding")
+		res.Header.Del("Content-Security-Policy")
 		res.Header.Set("Cache-Control", "no-store")
 
 		contentType := res.Header.Get("Content-type")
@@ -187,6 +203,9 @@ func (p *Proxy) handleReverseProxy(w http.ResponseWriter, r *http.Request) {
 
 		s = strings.Replace(s, sourceSchemeHost, proxySchemeHost, -1)
 		s = strings.Replace(s, sourceHost, proxySchemeHost, -1)
+		for _, sourceReplacer := range p.sourceReplacers {
+			s = sourceReplacer.Replace(s)
+		}
 
 		res.Body = ioutil.NopCloser(strings.NewReader(s))
 		return nil
