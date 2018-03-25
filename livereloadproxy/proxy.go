@@ -36,7 +36,7 @@ func NewProxy(proxyConfig config.Proxy, sourceConfig config.Source) *Proxy {
 			continue
 		}
 
-		proxy.AddSourceReplace(replace)
+		proxy.AddSourceReplacer(replace)
 	}
 
 	return proxy
@@ -52,7 +52,7 @@ type Proxy struct {
 	sourceReplacers []SourceReplacer
 }
 
-func (p *Proxy) AddSourceReplace(replaceConfig config.Replace) {
+func (p *Proxy) AddSourceReplacer(replaceConfig config.Replace) {
 	p.sourceReplacers = append(p.sourceReplacers, NewSourceReplacer(replaceConfig))
 }
 
