@@ -43,17 +43,17 @@ func NewProxy(proxyConfig config.Proxy, sourceConfig config.Source) *Proxy {
 }
 
 type Proxy struct {
-	livereload     *livereload.Server
-	proxyURL       *url.URL
-	scriptPath     string
-	isBrowserOpen  bool
-	sourceURL      *url.URL
-	staticPath     string
-	sourceReplaces []SourceReplacer
+	livereload      *livereload.Server
+	proxyURL        *url.URL
+	scriptPath      string
+	isBrowserOpen   bool
+	sourceURL       *url.URL
+	staticPath      string
+	sourceReplacers []SourceReplacer
 }
 
 func (p *Proxy) AddSourceReplace(replaceConfig config.Replace) {
-	p.sourceReplaces = append(p.sourceReplaces, NewSourceReplacer(replaceConfig))
+	p.sourceReplacers = append(p.sourceReplacers, NewSourceReplacer(replaceConfig))
 }
 
 func (p *Proxy) Run() {
@@ -203,8 +203,8 @@ func (p *Proxy) handleReverseProxy(w http.ResponseWriter, r *http.Request) {
 
 		s = strings.Replace(s, sourceSchemeHost, proxySchemeHost, -1)
 		s = strings.Replace(s, sourceHost, proxySchemeHost, -1)
-		for _, sourceReplace := range p.sourceReplaces {
-			s = sourceReplace.Replace(s)
+		for _, sourceReplacer := range p.sourceReplacers {
+			s = sourceReplacer.Replace(s)
 		}
 
 		res.Body = ioutil.NopCloser(strings.NewReader(s))
