@@ -101,7 +101,18 @@ func (fm *fsnotifyMonitor) initMonitorPath() {
 			continue
 		}
 
-		fm.addWalkMonitorPath(absPath)
+		fileInfo, err := os.Stat(absPath)
+		if err != nil {
+			panic(err)
+		}
+
+		if fileInfo.IsDir() {
+			fm.addWalkMonitorPath(absPath)
+			continue
+		}
+
+		// Support specific file.
+		fm.addMonitorPath(absPath)
 	}
 }
 
