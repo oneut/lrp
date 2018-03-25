@@ -4,18 +4,18 @@ import (
 	"regexp"
 )
 
-func NewSourceReplace(search string, replace string) *SourceReplace {
-	return &SourceReplace{
+func NewSourceRegexpReplacer(search string, replace string) *SourceRegexpReplacer {
+	return &SourceRegexpReplacer{
 		searchRegexp: regexp.MustCompile(search),
 		replace:      replace,
 	}
 }
 
-type SourceReplace struct {
+type SourceRegexpReplacer struct {
 	searchRegexp *regexp.Regexp
 	replace      string
 }
 
-func (s *SourceReplace) Replace(value string) string {
+func (s *SourceRegexpReplacer) Replace(value string) string {
 	return s.searchRegexp.ReplaceAllString(value, s.replace)
 }

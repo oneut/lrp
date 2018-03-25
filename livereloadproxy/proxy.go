@@ -32,15 +32,11 @@ func NewProxy(proxyConfig config.Proxy, sourceConfig config.Source) *Proxy {
 	}
 
 	for _, replace := range sourceConfig.Replaces {
-		if replace.Search == "" {
+		if !(replace.IsValid()) {
 			continue
 		}
 
-		if replace.Replace == "" {
-			continue
-		}
-
-		proxy.AddSourceReplace(replace.Search, replace.Replace)
+		proxy.AddSourceReplace(replace)
 	}
 
 	return proxy
@@ -53,11 +49,11 @@ type Proxy struct {
 	isBrowserOpen  bool
 	sourceURL      *url.URL
 	staticPath     string
-	sourceReplaces []*SourceReplace
+	sourceReplaces []SourceReplacer
 }
 
-func (p *Proxy) AddSourceReplace(search string, replace string) {
-	p.sourceReplaces = append(p.sourceReplaces, NewSourceReplace(search, replace))
+func (p *Proxy) AddSourceReplace(replaceConfig config.Replace) {
+	p.sourceReplaces = append(p.sourceReplaces, NewSourceReplacer(replaceConfig))
 }
 
 func (p *Proxy) Run() {
@@ -185,6 +181,7 @@ func (p *Proxy) handleReverseProxy(w http.ResponseWriter, r *http.Request) {
 	modifier := func(res *http.Response) error {
 		res.Header.Del("Content-Length")
 		res.Header.Del("Content-Encoding")
+		res.Header.Del("Content-Security-Policy")
 		res.Header.Set("Cache-Control", "no-store")
 
 		contentType := res.Header.Get("Content-type")
