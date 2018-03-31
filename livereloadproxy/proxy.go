@@ -109,11 +109,10 @@ func (p *Proxy) handleStatic(fs http.FileSystem, w http.ResponseWriter, r *http.
 
 	f, err := fs.Open(name)
 	if err != nil {
-		if !(p.hasSourceHost()) {
-			panic(err)
+		if p.hasSourceHost() {
+			p.handleReverseProxy(w, r)
 		}
 
-		p.handleReverseProxy(w, r)
 		return
 	}
 	defer f.Close()
@@ -129,11 +128,10 @@ func (p *Proxy) handleStatic(fs http.FileSystem, w http.ResponseWriter, r *http.
 		ff, err := fs.Open(index)
 
 		if err != nil {
-			if !(p.hasSourceHost()) {
-				panic(err)
+			if p.hasSourceHost() {
+				p.handleReverseProxy(w, r)
 			}
 
-			p.handleReverseProxy(w, r)
 			return
 		}
 
@@ -166,6 +164,8 @@ func (p *Proxy) handleStatic(fs http.FileSystem, w http.ResponseWriter, r *http.
 	} else {
 		reader = bytes.NewReader(buf.Bytes())
 	}
+
+	w.Header().Set("Cache-Control", "no-store")
 
 	http.ServeContent(w, r, d.Name(), d.ModTime(), reader)
 }
