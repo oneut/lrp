@@ -1,0 +1,13 @@
+{
+  "name": "local-web-server",
+  "version": "1.0.0",
+  "description": "Live reload local web server",
+  "scripts": {
+    "start": "hs"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "http-server": "^0.11.1"
+  }
+}

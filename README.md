@@ -186,7 +186,7 @@ source:
   host: "localhost:8080"
   replaces:
     - search: "//cdn.example.com"
-      replase: "//localhost:9000"
+      replace: "//localhost:9000"
 ```
 
 ## source.replaces.-.replace
@@ -197,7 +197,7 @@ source:
   host: "localhost:8080"
   replaces:
     - search: "//cdn.example.com"
-      replase: "//localhost:9000"
+      replace: "//localhost:9000"
 ```
 
 ## source.replaces.-.regexp
@@ -208,7 +208,7 @@ source:
   host: "localhost:8080"
   replaces:
     - search: "abc(.+)"
-      replase: "$1"
+      replace: "$1"
       regexp: true
 ```
 
