@@ -1,4 +1,4 @@
-# Local Web Server with Stub Example
+# Local Web Server with webpack Example
 
 This is a example that monitors the standard output of webpack and performs Live Reload to the local web server.
 
