@@ -1,0 +1,18 @@
+proxy: 
+  host: "localhost:9000"
+source:
+  host: "localhost:8080"
+tasks:
+  webpack:
+    commands:
+      watch:
+        execute: "npm run webpack:start"
+        watch_stdouts:
+          - "Entrypoint main = bundle.js"
+  local-web-server:
+    monitor:
+      paths:
+        - "./public/index.html"
+    commands:
+      http-server:
+        execute: "npm run hs:start -- -p 8080"
