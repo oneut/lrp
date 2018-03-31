@@ -1,6 +1,6 @@
 # Local Web Server Example
 
-This is a example that monitors files and performs Live Reload to the local web server.
+This is a example that monitors files and performs Live Reload to the local web server.
 
 ## Doing
 + Live Reload
