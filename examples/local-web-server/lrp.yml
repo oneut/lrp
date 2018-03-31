@@ -1,0 +1,16 @@
+proxy: 
+  host: "localhost:9000"
+source:
+  host: "localhost:8080"
+tasks:
+  local-web-server:
+    monitor:
+      paths:
+        - "./public"
+      ignores:
+        # vim
+        - "*.swp"
+        - "*~"
+    commands:
+      hs:
+        execute: "npm start -- -p 8080"

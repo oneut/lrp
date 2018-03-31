@@ -1,0 +1,35 @@
+proxy: 
+  scheme: "https"
+  host: "localhost:9000"
+  static_path: ./static
+source:
+  scheme: "https"
+  host: "localhost:8080"
+  replaces:
+    - search: "//cdn.example.com"
+      replase: "//localhost:9000"
+tasks:
+  web:
+    aggregate_timeout: 300
+    commands:
+      go:
+        execute: go run main.go
+        needs_restart: true
+    monitor:
+      paths:
+        - ./view
+  js:
+    commands:
+      webpack:
+        execute: npm start --prefix ./public/assets
+        needs_restart: false
+        watch_stdouts:
+          - bundle.js
+      test:
+        execute: npm test --prefix ./public/assets
+        needs_restart: true
+    monitor:
+      paths:
+        - ./public/assets
+      ignores:
+        - node_modules
