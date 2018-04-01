@@ -2,6 +2,8 @@
 
 This is a example that monitors the standard output of webpack and performs Live Reload to the local web server.
 
+![local web server with webpack example](https://raw.githubusercontent.com/oneut/lrp/master/examples/local-web-server-with-webpack/local-web-server-with-webpack.gif)
+
 ## Doing
 + Live Reload
     + Source website is local web server.

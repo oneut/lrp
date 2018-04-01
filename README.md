@@ -10,11 +10,9 @@ LRPはgolang製のLive Reload Proxyです。
 
 # モチベーション
 + Live Reloadを簡単にしたい
-    + 汎用的に使える
-    + 特定の言語に依存しない
+    + 特定の言語に依存せず、汎用的に使える
     + 複数のプログラミング言語を考慮できる
-    + コンパイルが必要な言語は自動的に再コンパイルしたい
-    + 設定を簡単にしたい
+    + コンパイルが必要な言語は自動的に再コンパイルできる
 + golangで何かを作ってみたかった
     + 初golangアプリケーション
 + 各Live Reloadツールのメリット・デメリットを検討した結果、機能をいいとこ取りすると便利になりそうだった
@@ -33,24 +31,21 @@ LRPはgolang製のLive Reload Proxyです。
         + コマンドの起動を制御できる
         + プロキシサーバは含まれていなかったので、エクステンション等が必要
 
-# 特徴
+# 主な特徴
 + プロキシサーバを経由してLive Reloadを行う
-    + ブラウザに対してエクステンションを必要としない
-    + htmlに特定のスクリプトを差し込む必要がない
-+ 設定をyamlで定義できる
-+ ファイル監視ができる
-    + 変更を検知してLive Reloadイベントの発火が可能
-    + ファイル作成
-    + ファイル更新
-    + ファイル削除
-    + ディレクトリ作成
-    + ディレクトリ削除
-    + 除外設定
-+ コマンドを管理できる
-    + restartを管理できる
-    + 標準出力のキーワードでLive Reloadイベントの発火が可能	
-+ 静的サーバとしての起動
-  + プロキシサーバとして使用した際にはスタブ機能として動作
+    + Live Reload用のスクリプトファイルはプロキシサーバが自動的に付与する
+      + ブラウザのエクステンションを必要としない
+      + htmlに特定のスクリプトを差し込む必要がない
++ 設定をyamlで定義
++ ファイル監視
+    + ファイル変更、ディレクトリ変更を検知してLive Reloadイベントを発火
+    + 除外設定も可能
++ コマンド管理
+    + Live Reloadイベント発火時にコマンドのrestartが可能
+    + 標準出力のキーワードでLive Reloadイベントを発火	
++ 静的Webサーバ
+    + 任意のディレクトリを静的Webサーバとして公開可能
+    + 任意のディレクトリのファイルを優先させるスタブ機能として使用可能
 + ポーリング機能は今のところない
     + ローカルで動かすことを目的としているので優先度が低い
     + 必要そうなら実装を検討する
@@ -103,6 +98,10 @@ tasks:
       ignores:
         - node_modules
 ```
+
+# 設定例
++ [Local Web Server](https://github.com/oneut/lrp/tree/master/examples/local-web-server)
++ [Local Web Server with webpack](https://github.com/oneut/lrp/tree/master/examples/local-web-server-with-webpack)
 
 # オプション
 ## proxy
@@ -173,6 +172,8 @@ source:
 source:
   host: "localhost:8080"
 ```
+
+`source.host`を設定した場合、ブラウザにアクセスした時には`proxy.host`の値に自動的に置換されます。
 
 ## source.replaces
 プロキシを経由してアクセスしているサイトのHTMLデータを条件を指定して置換します。  
@@ -335,9 +336,6 @@ tasks:
         - node_modules
         - ./node_modules
 ```
-
-# 設定例
-あとで書く
 
 # todo
 + test
