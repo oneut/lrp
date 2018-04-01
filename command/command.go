@@ -64,6 +64,8 @@ func (c *Command) Start() {
 		c.cmd = exec.Command(args[0], args[1:]...)
 	}
 
+	c.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
 	stdout, _ := c.cmd.StdoutPipe()
 	go func() {
 		scanner := bufio.NewScanner(stdout)
@@ -114,7 +116,12 @@ func (c *Command) Kill() bool {
 		return false
 	}
 
-	c.cmd.Process.Signal(syscall.SIGTERM)
+	// kill process with child process.
+	pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
+	if err == nil {
+		syscall.Kill(-pgid, syscall.SIGKILL)
+	}
+
 	return true
 }
 
