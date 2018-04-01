@@ -56,7 +56,7 @@ func (t *Task) Callback(message string) {
 	go func() {
 		time.Sleep(t.aggregateTimeout)
 		for _, cmd := range t.commands {
-			cmd.Restart()
+			go cmd.Restart()
 		}
 		t.proxy.Reload(message)
 		t.isReloading = false
