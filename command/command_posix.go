@@ -6,7 +6,7 @@ import (
 
 func (c *Command) sysProcAttr() {
 	c.cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true
+		Setpgid: true,
 	}
 }
 
