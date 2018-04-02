@@ -9,7 +9,8 @@ func (nc *NilCommand) Run(fn func(string)) {
 func (nc *NilCommand) Start() {
 }
 
-func (nc *NilCommand) Restart() {
+func (nc *NilCommand) NeedsRestart() bool {
+	return false
 }
 
 func (nc *NilCommand) Kill() bool {
