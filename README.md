@@ -77,7 +77,9 @@ tasks:
     aggregate_timeout: 300
     commands:
       go:
-        execute: go run main.go
+        executes:
+          - go build -o main
+          - ./main
         needs_restart: true
     monitor:
       paths:
@@ -85,12 +87,14 @@ tasks:
   js:
     commands:
       webpack:
-        execute: npm start --prefix ./public/assets
+        executes:
+          - npm start --prefix ./public/assets
         needs_restart: false
         watch_stdouts:
           - bundle.js
       test:
-        execute: npm test --prefix ./public/assets
+        executes: 
+          - npm test --prefix ./public/assets
         needs_restart: true
     monitor:
       paths:
@@ -224,7 +228,9 @@ tasks:
     aggregate_timeout: 300
     commands:
       go:
-        execute: go run main.go
+        executes:
+          - go build -o main
+          - ./main
         needs_restart: true
     monitor:
       paths:
@@ -251,20 +257,25 @@ tasks:
   web:
     commands:
       go:
-        execute: go build
+        executes: 
+          - go build -o main
+          - ./main
       npm:
-        execute: npm start
+        executes:
+          - npm start
 ```
 
-## tasks.{task_name}.commands.{command_name}.execute
-実行したいコマンドを設定します。
+## tasks.{task_name}.commands.{command_name}.executes
+実行したいコマンドを設定します。複数設定可能です。タスクを順次実行します。非同期では実行されません。
 
 ```
 tasks:
   web:
     commands:
       go:
-        execute: go build
+        executes:
+          - go build -o main.exe
+          - ./main
 ```
 
 ## tasks.{task_name}.commands.{command_name}.needs_restart
@@ -275,7 +286,9 @@ tasks:
   web:
     commands:
       go:
-        execute: go build
+        executes:
+          - go build -o main
+          - ./main
         needs_restart: true
 ```
 
@@ -289,7 +302,8 @@ tasks:
   web:
     commands:
       npm:
-        execute: npm start
+        executes:
+          - npm start
         needs_restart: false
         watch_stdouts:
           - bundle.js

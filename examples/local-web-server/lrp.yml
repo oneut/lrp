@@ -13,4 +13,5 @@ tasks:
         - "*~"
     commands:
       hs:
-        execute: "npm start -- -p 8080"
+        executes: 
+          - "npm start -- -p 8080"
