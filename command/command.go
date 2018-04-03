@@ -86,6 +86,7 @@ func (c *Command) Start() {
 		defer c.Kill()
 		c.sysProcAttr()
 		c.cmd.Start()
+		logger.InfoCommand(c.name, c.commandName, "execute: "+execute)
 		c.cmd.Wait()
 	}
 }
