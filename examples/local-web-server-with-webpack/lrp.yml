@@ -6,7 +6,8 @@ tasks:
   webpack:
     commands:
       watch:
-        execute: "npm run webpack:start"
+        executes: 
+          - "npm run webpack:start"
         watch_stdouts:
           - "Entrypoint main = bundle.js"
   local-web-server:
@@ -15,4 +16,5 @@ tasks:
         - "./public/index.html"
     commands:
       http-server:
-        execute: "npm run hs:start -- -p 8080"
+        executes: 
+          - "npm run hs:start -- -p 8080"

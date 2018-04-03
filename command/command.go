@@ -18,7 +18,7 @@ func NewCommand(name string, commandName string, commandConfig config.Command) C
 	return &Command{
 		commandName:  commandName,
 		name:         name,
-		execute:      commandConfig.Execute,
+		executes:     commandConfig.Executes,
 		needsRestart: commandConfig.NeedsRestart,
 		watchStdouts: commandConfig.WatchStdouts,
 	}
@@ -37,7 +37,7 @@ type Command struct {
 	commandName  string
 	name         string
 	callback     func(string)
-	execute      string
+	executes     []string
 	needsRestart bool
 	watchStdouts []string
 }
@@ -49,43 +49,46 @@ func (c *Command) Run(fn func(string)) {
 }
 
 func (c *Command) Start() {
-	args, err := shellwords.Parse(c.execute)
-	if err != nil {
-		panic(err)
-	}
-
-	switch len(args) {
-	case 0:
-		panic("command.execute is required")
-	case 1:
-		c.cmd = exec.Command(args[0])
-	default:
-		c.cmd = exec.Command(args[0], args[1:]...)
-	}
-
-	stdout, _ := c.cmd.StdoutPipe()
-	go func() {
-		scanner := bufio.NewScanner(stdout)
-		for scanner.Scan() {
-			line := scanner.Text()
-			logger.InfoCommandStdout(c.name, c.commandName, line)
-			c.watchStdout(line)
+	for _, execute := range c.executes {
+		args, err := shellwords.Parse(execute)
+		if err != nil {
+			panic(err)
 		}
-	}()
 
-	stderr, _ := c.cmd.StderrPipe()
-	go func() {
-		scanner := bufio.NewScanner(stderr)
-		for scanner.Scan() {
-			line := scanner.Text()
-			logger.InfoCommandStdout(c.name, c.commandName, line)
+		switch len(args) {
+		case 0:
+			panic("command.execute is required")
+		case 1:
+			c.cmd = exec.Command(args[0])
+		default:
+			c.cmd = exec.Command(args[0], args[1:]...)
 		}
-	}()
 
-	defer c.Kill()
-	c.sysProcAttr()
-	c.cmd.Start()
-	c.cmd.Wait()
+		stdout, _ := c.cmd.StdoutPipe()
+		go func() {
+			scanner := bufio.NewScanner(stdout)
+			for scanner.Scan() {
+				line := scanner.Text()
+				logger.InfoCommandStdout(c.name, c.commandName, line)
+				c.watchStdout(line)
+			}
+		}()
+
+		stderr, _ := c.cmd.StderrPipe()
+		go func() {
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				line := scanner.Text()
+				logger.InfoCommandStdout(c.name, c.commandName, line)
+			}
+		}()
+
+		defer c.Kill()
+		c.sysProcAttr()
+		c.cmd.Start()
+		logger.InfoCommand(c.name, c.commandName, "execute: "+execute)
+		c.cmd.Wait()
+	}
 }
 
 func (c *Command) watchStdout(line string) {
