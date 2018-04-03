@@ -13,9 +13,10 @@ tasks:
     aggregate_timeout: 300
     commands:
       go:
-        executes: 
-          - go build -o main
-          - main
+        executes:
+          - "go clean"
+          - "go build -o main"
+          - "./main"
         needs_restart: true
     monitor:
       paths:
