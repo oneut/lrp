@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"os/exec"
 	"strings"
-	"syscall"
 
 	"github.com/mattn/go-shellwords"
 	"github.com/oneut/lrp/config"
@@ -28,7 +27,7 @@ func NewCommand(name string, commandName string, commandConfig config.Command) C
 type CommandInterface interface {
 	Run(func(string))
 	Start()
-	Restart()
+	NeedsRestart() bool
 	Kill() bool
 	Stop()
 }
@@ -64,8 +63,6 @@ func (c *Command) Start() {
 		c.cmd = exec.Command(args[0], args[1:]...)
 	}
 
-	c.cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-
 	stdout, _ := c.cmd.StdoutPipe()
 	go func() {
 		scanner := bufio.NewScanner(stdout)
@@ -86,6 +83,7 @@ func (c *Command) Start() {
 	}()
 
 	defer c.Kill()
+	c.sysProcAttr()
 	c.cmd.Start()
 	c.cmd.Wait()
 }
@@ -104,11 +102,8 @@ func (c *Command) watchStdout(line string) {
 	}
 }
 
-func (c *Command) Restart() {
-	if c.needsRestart {
-		c.Kill()
-		c.Start()
-	}
+func (c *Command) NeedsRestart() bool {
+	return c.needsRestart
 }
 
 func (c *Command) Kill() bool {
@@ -116,12 +111,7 @@ func (c *Command) Kill() bool {
 		return false
 	}
 
-	// kill process with child process.
-	pgid, err := syscall.Getpgid(c.cmd.Process.Pid)
-	if err == nil {
-		syscall.Kill(-pgid, syscall.SIGKILL)
-	}
-
+	c.kill()
 	return true
 }
 
