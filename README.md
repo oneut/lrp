@@ -68,20 +68,20 @@ lrp start
 proxy:
   scheme: "https"
   host: "localhost:9000"
-  static_path: ./
+  staticPath: ./
 source:
   scheme: "https"
   host: "localhost:8080"
 tasks:
   web:
-    aggregate_timeout: 300
+    aggregateTimeout: 300
     commands:
       go:
         executes:
           - "go clean"
           - "go build -o main"
           - "./main"
-        needs_restart: true
+        needsRestart: true
     monitor:
       paths:
         - ./view
@@ -90,13 +90,13 @@ tasks:
       webpack:
         executes:
           - npm start --prefix ./public/assets
-        needs_restart: false
-        watch_stdouts:
+        needsRestart: false
+        watchStdouts:
           - bundle.js
       test:
         executes: 
           - npm test --prefix ./public/assets
-        needs_restart: true
+        needsRestart: true
     monitor:
       paths:
         - ./public/assets
@@ -133,24 +133,24 @@ proxy:
   host: "localhost:9000"
 ```
 
-## proxy.static_path
+## proxy.staticPath
 プロキシサーバ経由で静的ファイルにアクセスできます。任意の設定です。
 
 ```
 proxy:
-  static_path: ./static
+  staticPath: ./static
 ```
 
-もし、proxy.static_pathとsource.hostで同じパスが存在した場合は、static_pathが優先されます。    
-そのため、Webサーバに対してアクセスさえできれば、一部のファイルだけ`static_path`に存在するローカルファイルに差し替えることができます。
+もし、proxy.staticPathとsource.hostで同じパスが存在した場合は、staticPathが優先されます。    
+そのため、Webサーバに対してアクセスさえできれば、一部のファイルだけ`staticPath`に存在するローカルファイルに差し替えることができます。
 
-## proxy.browser_open
+## proxy.browserOpen
 ブラウザの自動オープンを制御します。デフォルトは自動でブラウザがオープンします。
 ブラウザを自動でオープンしたくない場合は、`none`を設定してください。
 
 ```
 proxy:
-  browser_open: "none"
+  browserOpen: "none"
 ```
 
 ## source
@@ -226,20 +226,20 @@ Live Reloadを行うタスクを管理します。タスク名は任意で設定
 ```
 tasks:
   web:
-    aggregate_timeout: 300
+    aggregateTimeout: 300
     commands:
       go:
         executes:
           - "go clean"
           - "go build -o main"
           - "./main"
-        needs_restart: true
+        needsRestart: true
     monitor:
       paths:
         - ./view
 ```
 
-## tasks.{task_name}.aggregate\_timeout
+## tasks.{task_name}.aggregateTimeout
 最初のファイルが変更されてからの遅延を設定できます。
 この設定により、この期間に行われた他の変更を1回の再構築に集約できます。
 設定はミリ秒単位です。デフォルトは`300`です。
@@ -247,7 +247,7 @@ tasks:
 ```
 tasks:
   web:
-    aggregate_timeout: 300
+    aggregateTimeout: 300
 ```
 
 ## tasks.{task_name}.commands
@@ -282,7 +282,7 @@ tasks:
           - "./main"
 ```
 
-## tasks.{task_name}.commands.{command_name}.needs_restart
+## tasks.{task_name}.commands.{command_name}.needsRestart
 ファイル監視で変更が起きた際にコマンドを再実行したい場合に設定します。デフォルトは`false`です。
 
 ```
@@ -294,13 +294,13 @@ tasks:
           - "go clean"
           - "go build -o main"
           - "./main"
-        needs_restart: true
+        needsRestart: true
 ```
 
-## tasks.{task_name}.commands.{command_name}.watch_stdouts
+## tasks.{task_name}.commands.{command_name}.watchStdouts
 コマンド実行時の標準出力を監視します。
 設定したキーワードによってLive Reloadイベントを発火します。
-`needs_restart=true`で再起動した際に、`watch_stdouts`で指定したキーワードがあると無限ループします。気をつけましょう。
+`needsRestart=true`で再起動した際に、`watchStdouts`で指定したキーワードがあると無限ループします。気をつけましょう。
 
 ```
 tasks:
@@ -309,8 +309,8 @@ tasks:
       npm:
         executes:
           - npm start
-        needs_restart: false
-        watch_stdouts:
+        needsRestart: false
+        watchStdouts:
           - bundle.js
 ```
 

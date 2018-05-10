@@ -1,7 +1,7 @@
 proxy: 
   scheme: "https"
   host: "localhost:9000"
-  static_path: ./static
+  staticPath: ./static
 source:
   scheme: "https"
   host: "localhost:8080"
@@ -10,7 +10,7 @@ source:
       replase: "//localhost:9000"
 tasks:
   web:
-    aggregate_timeout: 300
+    aggregateTimeout: 300
     commands:
       go:
         executes:
@@ -25,12 +25,12 @@ tasks:
     commands:
       webpack:
         execute: npm start --prefix ./public/assets
-        needs_restart: false
-        watch_stdouts:
+        needsRestart: false
+        watchStdouts:
           - bundle.js
       test:
         execute: npm test --prefix ./public/assets
-        needs_restart: true
+        needsRestart: true
     monitor:
       paths:
         - ./public/assets

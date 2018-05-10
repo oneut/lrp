@@ -6,8 +6,8 @@ var defaultProxyHost string = ":9000"
 type Proxy struct {
 	Scheme      string
 	Host        string
-	StaticPath  string `yaml:"static_path"`
-	BrowserOpen string `yaml:"browser_open"`
+	StaticPath  string `yaml:"staticPath"`
+	BrowserOpen string `yaml:"browserOpen"`
 }
 
 func (p *Proxy) GetScheme() string {
