@@ -8,7 +8,7 @@ tasks:
       watch:
         executes: 
           - "npm run webpack:start"
-        watch_stdouts:
+        watchStdouts:
           - "Entrypoint main = bundle.js"
   local-web-server:
     monitor:

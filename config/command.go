@@ -2,8 +2,8 @@ package config
 
 type Command struct {
 	Executes     []string
-	NeedsRestart bool     `yaml:"needs_restart"`
-	WatchStdouts []string `yaml:"watch_stdouts"`
+	NeedsRestart bool     `yaml:"needsRestart"`
+	WatchStdouts []string `yaml:"watchStdouts"`
 }
 
 func (c *Command) IsValid() bool {

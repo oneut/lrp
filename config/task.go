@@ -9,7 +9,7 @@ var defaultAggregateTimeout = 300
 type Task struct {
 	Commands         map[string]Command
 	Monitor          Monitor
-	AggregateTimeout int `yaml:"aggregate_timeout"`
+	AggregateTimeout int `yaml:"aggregateTimeout"`
 }
 
 func (t *Task) GetAggregateTimeout() time.Duration {
